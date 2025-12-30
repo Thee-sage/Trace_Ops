@@ -3,7 +3,7 @@ import { ServiceSelector } from './components/ServiceSelector';
 import { TimelineView } from './components/TimelineView';
 import { IssuesView } from './components/IssuesView';
 import { NeedsAttentionView } from './components/NeedsAttentionView';
-import { fetchTimeline, fetchServices, fetchIssues, fetchNeedsAttention } from './api/client';
+import { fetchTimeline, fetchIssues, fetchNeedsAttention } from './api/client';
 import { TimelineEvent, Issue } from './types/event';
 
 const API_BASE = "https://trace-ops.onrender.com";
@@ -19,6 +19,20 @@ function App() {
   const [highlightedEventIds, setHighlightedEventIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    const loadServices = async () => {
+      try {
+        console.log("[TraceOps] Fetching services from:", `${API_BASE}/services`);
+        const response = await fetch(`${API_BASE}/services`);
+        console.log("[TraceOps] Services response status:", response.status);
+        const data = await response.json();
+        console.log("[TraceOps] Services response:", data);
+        setServices(data);
+      } catch (error) {
+        console.error("[TraceOps] Fetch failed", error);
+        setError(error instanceof Error ? error.message : 'Failed to load services');
+      }
+    };
+
     loadServices();
   }, []);
 
@@ -33,7 +47,7 @@ function App() {
 
     const fetchAll = async () => {
       try {
-        console.log("➡️ Fetching EVENTS");
+        console.log("[TraceOps] Fetching EVENTS from:", `${API_BASE}/events?serviceName=${encodeURIComponent(selectedService)}`);
         const eventsRes = await fetch(
           `${API_BASE}/events?serviceName=${encodeURIComponent(selectedService)}`
         );
@@ -41,8 +55,12 @@ function App() {
         const events = await eventsRes.json();
         console.log("EVENTS data:", events);
         setTimelineEvents(events);
+      } catch (error) {
+        console.error("[TraceOps] Fetch failed", error);
+      }
 
-        console.log("➡️ Fetching ISSUES");
+      try {
+        console.log("[TraceOps] Fetching ISSUES from:", `${API_BASE}/issues?serviceName=${encodeURIComponent(selectedService)}`);
         const issuesRes = await fetch(
           `${API_BASE}/issues?serviceName=${encodeURIComponent(selectedService)}`
         );
@@ -50,8 +68,12 @@ function App() {
         const issues = await issuesRes.json();
         console.log("ISSUES data:", issues);
         setIssues(issues);
+      } catch (error) {
+        console.error("[TraceOps] Fetch failed", error);
+      }
 
-        console.log("➡️ Fetching NEEDS ATTENTION");
+      try {
+        console.log("[TraceOps] Fetching NEEDS ATTENTION from:", `${API_BASE}/issues/needs-attention?serviceName=${encodeURIComponent(selectedService)}`);
         const naRes = await fetch(
           `${API_BASE}/issues/needs-attention?serviceName=${encodeURIComponent(selectedService)}`
         );
@@ -59,23 +81,14 @@ function App() {
         const needsAttention = await naRes.json();
         console.log("NEEDS ATTENTION data:", needsAttention);
         setNeedsAttention(needsAttention);
-      } catch (err) {
-        console.error("🔥 FETCH FAILED:", err);
+      } catch (error) {
+        console.error("[TraceOps] Fetch failed", error);
       }
     };
 
     fetchAll();
   }, [selectedService]);
 
-  async function loadServices() {
-    try {
-      const serviceList = await fetchServices();
-      setServices(serviceList);
-    } catch (err) {
-      console.error('Failed to load services:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load services');
-    }
-  }
 
   async function loadTimeline(serviceName: string, isInitialLoad = false) {
     if (isInitialLoad) {
@@ -163,6 +176,12 @@ function App() {
         {error && (
           <div className="mb-16 p-5 bg-slate-950 border border-red-600 rounded-lg text-red-600">
             Error: {error}
+          </div>
+        )}
+
+        {services.length === 0 && (
+          <div className="mb-16 p-5 bg-slate-950 border border-yellow-600 rounded-lg text-yellow-600">
+            No services returned from backend
           </div>
         )}
 
