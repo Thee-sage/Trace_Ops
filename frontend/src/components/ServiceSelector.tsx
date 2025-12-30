@@ -26,7 +26,7 @@ export function ServiceSelector({ services, selectedService, onSelect, loading }
         }}
       >
         <option value="" className="bg-slate-950">-- Choose a service --</option>
-        {services.map((service) => (
+        {Array.isArray(services) && services.map((service) => (
           <option key={service} value={service} className="bg-slate-950">
             {service}
           </option>

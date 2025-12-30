@@ -1,8 +1,6 @@
 import { TimelineResponse } from '../types/event';
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || 'http://localhost:3000'
-).replace(/\/+$/, '');
+const API_BASE_URL = 'https://trace-ops.onrender.com';
 
 export async function fetchTimeline(
   serviceName: string

@@ -6,13 +6,26 @@ import healthRouter from './routes/health';
 import eventsRouter from './routes/events';
 import issuesRouter from './routes/issues';
 import blockchainRouter from './routes/blockchain';
+import { storage } from './services/storage';
 
 export function createApp(): Express {
   const app = express();
 
   app.use(cors({
-    origin: config.corsOrigin,
-    credentials: true,
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'https://traceops.vercel.app'
+      ];
+      
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: false,
+    methods: ['GET', 'POST'],
   }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -21,6 +34,27 @@ export function createApp(): Express {
   app.use('/events', eventsRouter);
   app.use('/issues', issuesRouter);
   app.use('/blockchain', blockchainRouter);
+
+  app.get('/services', (_req: Request, res: Response) => {
+    try {
+      const allEvents = storage.findAll();
+      const serviceNames = new Set<string>();
+      
+      allEvents.forEach((event) => {
+        if (event.serviceName) {
+          serviceNames.add(event.serviceName);
+        }
+      });
+      
+      return res.json(Array.from(serviceNames).sort());
+    } catch (error) {
+      logger.error('Failed to fetch services', error);
+      return res.status(500).json({
+        error: 'Failed to fetch services',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
 
   app.get('/', (_req: Request, res: Response) => {
     res.json({

@@ -24,11 +24,23 @@ function App() {
         console.log("[TraceOps] Fetching services from:", `${API_BASE}/services`);
         const response = await fetch(`${API_BASE}/services`);
         console.log("[TraceOps] Services response status:", response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch services: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         console.log("[TraceOps] Services response:", data);
-        setServices(data);
+        
+        if (Array.isArray(data)) {
+          setServices(data);
+        } else {
+          console.error("[TraceOps] Invalid response format - expected array, got:", typeof data);
+          setServices([]);
+        }
       } catch (error) {
         console.error("[TraceOps] Fetch failed", error);
+        setServices([]);
         setError(error instanceof Error ? error.message : 'Failed to load services');
       }
     };
@@ -179,9 +191,9 @@ function App() {
           </div>
         )}
 
-        {services.length === 0 && (
+        {services.length === 0 && !loading && (
           <div className="mb-16 p-5 bg-slate-950 border border-yellow-600 rounded-lg text-yellow-600">
-            No services returned from backend
+            No services available
           </div>
         )}
 
