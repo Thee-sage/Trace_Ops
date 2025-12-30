@@ -37,16 +37,8 @@ export function createApp(): Express {
 
   app.get('/services', (_req: Request, res: Response) => {
     try {
-      const allEvents = storage.findAll();
-      const serviceNames = new Set<string>();
-      
-      allEvents.forEach((event) => {
-        if (event.serviceName) {
-          serviceNames.add(event.serviceName);
-        }
-      });
-      
-      return res.json(Array.from(serviceNames).sort());
+      const serviceNames = storage.listServices();
+      return res.json(serviceNames);
     } catch (error) {
       logger.error('Failed to fetch services', error);
       return res.status(500).json({

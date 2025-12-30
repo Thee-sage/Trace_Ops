@@ -4,6 +4,8 @@ import { logger } from './utils/logger';
 import { blockchainService } from './services/blockchain';
 import { storage } from './services/storage';
 import { EventType } from './models/Event';
+// Ensure database is initialized early
+import './storage/db';
 
 const app = createApp();
 

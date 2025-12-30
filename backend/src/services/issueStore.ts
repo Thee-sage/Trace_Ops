@@ -1,10 +1,9 @@
 import { Issue } from '../models/Issue';
 import { Event, EventType } from '../models/Event';
 import { storage } from './storage';
+import { issueStoreDb } from '../storage/issueStoreDb';
 
 class IssueStore {
-  private issues: Map<string, Issue> = new Map();
-  private fingerprintIndex: Map<string, string> = new Map();
 
   private generateId(): string {
     return `issue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -167,11 +166,7 @@ class IssueStore {
   }
 
   findByFingerprint(serviceName: string, fingerprint: string): Issue | undefined {
-    const key = `${serviceName}:${fingerprint}`;
-    const issueId = this.fingerprintIndex.get(key);
-    if (!issueId) return undefined;
-    
-    return this.issues.get(issueId);
+    return issueStoreDb.findByFingerprint(serviceName, fingerprint);
   }
 
   createIssue(event: Event, fingerprint: string, suspectedCauseEventId?: string): Issue {
@@ -199,16 +194,13 @@ class IssueStore {
 
     this.updateIssueMetrics(issue);
 
-    this.issues.set(issue.id, issue);
-    
-    const key = `${event.serviceName}:${fingerprint}`;
-    this.fingerprintIndex.set(key, issue.id);
+    issueStoreDb.upsert(issue);
 
     return issue;
   }
 
   incrementIssue(issueId: string, eventId: string, timestamp: number, suspectedCauseEventId?: string): Issue {
-    const issue = this.issues.get(issueId);
+    const issue = issueStoreDb.findById(issueId);
     if (!issue) {
       throw new Error(`Issue not found: ${issueId}`);
     }
@@ -230,11 +222,13 @@ class IssueStore {
 
     this.updateIssueMetrics(issue);
 
+    issueStoreDb.upsert(issue);
+
     return issue;
   }
 
   resolveIssue(issueId: string, resolvedByEventId: string, resolvedAt: number): Issue {
-    const issue = this.issues.get(issueId);
+    const issue = issueStoreDb.findById(issueId);
     if (!issue) {
       throw new Error(`Issue not found: ${issueId}`);
     }
@@ -244,6 +238,8 @@ class IssueStore {
     issue.resolvedByEventId = resolvedByEventId;
 
     this.updateIssueMetrics(issue);
+
+    issueStoreDb.upsert(issue);
 
     return issue;
   }
@@ -274,31 +270,23 @@ class IssueStore {
   }
 
   getOpenIssues(serviceName: string): Issue[] {
-    return Array.from(this.issues.values())
-      .filter(issue => issue.serviceName === serviceName && issue.status === 'open');
+    return issueStoreDb.getOpenIssues(serviceName);
   }
 
   getTopIssuesByPriority(serviceName: string, limit: number = 3): Issue[] {
-    const issues = this.getOpenIssues(serviceName);
-    return issues
-      .sort((a, b) => b.priorityScore - a.priorityScore)
-      .slice(0, limit);
+    return issueStoreDb.getTopIssuesByPriority(serviceName, limit);
   }
 
   listIssues(serviceName: string): Issue[] {
-    const issues = Array.from(this.issues.values())
-      .filter(issue => issue.serviceName === serviceName);
-    
-    return issues.sort((a, b) => b.lastSeen - a.lastSeen);
+    return issueStoreDb.listIssues(serviceName);
   }
 
   findById(id: string): Issue | undefined {
-    return this.issues.get(id);
+    return issueStoreDb.findById(id);
   }
 
   clear(): void {
-    this.issues.clear();
-    this.fingerprintIndex.clear();
+    issueStoreDb.clear();
   }
 }
 
