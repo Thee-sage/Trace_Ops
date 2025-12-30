@@ -35,9 +35,9 @@ export function createApp(): Express {
   app.use('/issues', issuesRouter);
   app.use('/blockchain', blockchainRouter);
 
-  app.get('/services', (_req: Request, res: Response) => {
+  app.get('/services', async (_req: Request, res: Response) => {
     try {
-      const serviceNames = storage.listServices();
+      const serviceNames = await storage.listServices();
       return res.json(serviceNames);
     } catch (error) {
       logger.error('Failed to fetch services', error);

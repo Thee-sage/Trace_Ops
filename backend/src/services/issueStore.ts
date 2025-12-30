@@ -35,9 +35,10 @@ class IssueStore {
     return undefined;
   }
 
-  private computeImpactMetrics(issue: Issue): { uniqueRoutes: number; uniqueUsers?: number; errorRate: number } {
-    const events = issue.relatedEventIds
-      .map(id => storage.findById(id))
+  private async computeImpactMetrics(issue: Issue): Promise<{ uniqueRoutes: number; uniqueUsers?: number; errorRate: number }> {
+    const eventPromises = issue.relatedEventIds.map(id => storage.findById(id));
+    const eventResults = await Promise.all(eventPromises);
+    const events = eventResults
       .filter((e): e is Event => e !== undefined && e.eventType === EventType.ERROR);
 
     const routes = new Set<string>();
@@ -165,11 +166,11 @@ class IssueStore {
     };
   }
 
-  findByFingerprint(serviceName: string, fingerprint: string): Issue | undefined {
-    return issueStoreDb.findByFingerprint(serviceName, fingerprint);
+  async findByFingerprint(serviceName: string, fingerprint: string): Promise<Issue | undefined> {
+    return await issueStoreDb.findByFingerprint(serviceName, fingerprint);
   }
 
-  createIssue(event: Event, fingerprint: string, suspectedCauseEventId?: string): Issue {
+  async createIssue(event: Event, fingerprint: string, suspectedCauseEventId?: string): Promise<Issue> {
     if (event.eventType !== EventType.ERROR) {
       throw new Error('Issues can only be created from ERROR events');
     }
@@ -192,15 +193,15 @@ class IssueStore {
       priorityScore: 0,
     };
 
-    this.updateIssueMetrics(issue);
+    await this.updateIssueMetrics(issue);
 
-    issueStoreDb.upsert(issue);
+    await issueStoreDb.upsert(issue);
 
     return issue;
   }
 
-  incrementIssue(issueId: string, eventId: string, timestamp: number, suspectedCauseEventId?: string): Issue {
-    const issue = issueStoreDb.findById(issueId);
+  async incrementIssue(issueId: string, eventId: string, timestamp: number, suspectedCauseEventId?: string): Promise<Issue> {
+    const issue = await issueStoreDb.findById(issueId);
     if (!issue) {
       throw new Error(`Issue not found: ${issueId}`);
     }
@@ -220,15 +221,15 @@ class IssueStore {
       issue.suspectedCauseEventId = suspectedCauseEventId;
     }
 
-    this.updateIssueMetrics(issue);
+    await this.updateIssueMetrics(issue);
 
-    issueStoreDb.upsert(issue);
+    await issueStoreDb.upsert(issue);
 
     return issue;
   }
 
-  resolveIssue(issueId: string, resolvedByEventId: string, resolvedAt: number): Issue {
-    const issue = issueStoreDb.findById(issueId);
+  async resolveIssue(issueId: string, resolvedByEventId: string, resolvedAt: number): Promise<Issue> {
+    const issue = await issueStoreDb.findById(issueId);
     if (!issue) {
       throw new Error(`Issue not found: ${issueId}`);
     }
@@ -237,15 +238,15 @@ class IssueStore {
     issue.resolvedAt = resolvedAt;
     issue.resolvedByEventId = resolvedByEventId;
 
-    this.updateIssueMetrics(issue);
+    await this.updateIssueMetrics(issue);
 
-    issueStoreDb.upsert(issue);
+    await issueStoreDb.upsert(issue);
 
     return issue;
   }
 
-  private updateIssueMetrics(issue: Issue): void {
-    const metrics = this.computeImpactMetrics(issue);
+  private async updateIssueMetrics(issue: Issue): Promise<void> {
+    const metrics = await this.computeImpactMetrics(issue);
     issue.uniqueRoutes = metrics.uniqueRoutes;
     issue.uniqueUsers = metrics.uniqueUsers;
     issue.errorRate = metrics.errorRate;
@@ -269,24 +270,24 @@ class IssueStore {
     issue.priorityReason = priority.reason;
   }
 
-  getOpenIssues(serviceName: string): Issue[] {
-    return issueStoreDb.getOpenIssues(serviceName);
+  async getOpenIssues(serviceName: string): Promise<Issue[]> {
+    return await issueStoreDb.getOpenIssues(serviceName);
   }
 
-  getTopIssuesByPriority(serviceName: string, limit: number = 3): Issue[] {
-    return issueStoreDb.getTopIssuesByPriority(serviceName, limit);
+  async getTopIssuesByPriority(serviceName: string, limit: number = 3): Promise<Issue[]> {
+    return await issueStoreDb.getTopIssuesByPriority(serviceName, limit);
   }
 
-  listIssues(serviceName: string): Issue[] {
-    return issueStoreDb.listIssues(serviceName);
+  async listIssues(serviceName: string): Promise<Issue[]> {
+    return await issueStoreDb.listIssues(serviceName);
   }
 
-  findById(id: string): Issue | undefined {
-    return issueStoreDb.findById(id);
+  async findById(id: string): Promise<Issue | undefined> {
+    return await issueStoreDb.findById(id);
   }
 
-  clear(): void {
-    issueStoreDb.clear();
+  async clear(): Promise<void> {
+    await issueStoreDb.clear();
   }
 }
 

@@ -7,8 +7,8 @@ import { CreateEventDto, EventType, TimelineEvent, Event } from '../models/Event
 
 const router = Router();
 
-function findSuspectedCause(event: Event): string | undefined {
-  const allEvents = storage.findAll({ serviceName: event.serviceName });
+async function findSuspectedCause(event: Event): Promise<string | undefined> {
+  const allEvents = await storage.findAll({ serviceName: event.serviceName });
   const sortedEvents = [...allEvents].sort((a, b) => a.timestamp - b.timestamp);
   
   const currentIndex = sortedEvents.findIndex(e => e.id === event.id);
@@ -24,15 +24,15 @@ function findSuspectedCause(event: Event): string | undefined {
   return undefined;
 }
 
-function checkIssueResolution(triggerEvent: Event): void {
+async function checkIssueResolution(triggerEvent: Event): Promise<void> {
   if (triggerEvent.eventType !== EventType.DEPLOY && triggerEvent.eventType !== EventType.CONFIG_CHANGE) {
     return;
   }
 
   try {
-    const openIssues = issueStore.getOpenIssues(triggerEvent.serviceName);
+    const openIssues = await issueStore.getOpenIssues(triggerEvent.serviceName);
 
-    const errorEventsAfter = storage.findAll({
+    const errorEventsAfter = await storage.findAll({
       serviceName: triggerEvent.serviceName,
       eventType: EventType.ERROR,
       startTime: triggerEvent.timestamp + 1,
@@ -54,7 +54,7 @@ function checkIssueResolution(triggerEvent: Event): void {
       }
 
       if (!hasMatchingError) {
-        issueStore.resolveIssue(issue.id, triggerEvent.id, triggerEvent.timestamp);
+        await issueStore.resolveIssue(issue.id, triggerEvent.id, triggerEvent.timestamp);
       }
     }
   } catch (error) {
@@ -62,7 +62,7 @@ function checkIssueResolution(triggerEvent: Event): void {
   }
 }
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const { serviceName, eventType, startTime, endTime } = req.query;
 
@@ -73,7 +73,7 @@ router.get('/', (req: Request, res: Response) => {
       endTime: endTime ? parseInt(endTime as string, 10) : undefined,
     };
 
-    const events = storage.findAll(options);
+    const events = await storage.findAll(options);
 
     return res.json({
       events,
@@ -87,11 +87,11 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
-router.get('/timeline/:serviceName', (req: Request, res: Response) => {
+router.get('/timeline/:serviceName', async (req: Request, res: Response) => {
   try {
     const { serviceName } = req.params;
 
-    const events = storage.findAll({ serviceName });
+    const events = await storage.findAll({ serviceName });
     const timelineEvents: TimelineEvent[] = correlationService.analyzeEvents(events);
     timelineEvents.sort((a, b) => a.timestamp - b.timestamp);
 
@@ -109,10 +109,10 @@ router.get('/timeline/:serviceName', (req: Request, res: Response) => {
   }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const event = storage.findById(id);
+    const event = await storage.findById(id);
 
     if (!event) {
       return res.status(404).json({
@@ -129,7 +129,7 @@ router.get('/:id', (req: Request, res: Response) => {
   }
 });
 
-router.post('/', (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
     const dto: CreateEventDto = req.body;
 
@@ -149,24 +149,24 @@ router.post('/', (req: Request, res: Response) => {
       });
     }
 
-    const event = storage.create(dto);
+    const event = await storage.create(dto);
 
     if (event.eventType === EventType.ERROR) {
       try {
         const fingerprint = generateFingerprint(event);
-        const suspectedCauseEventId = findSuspectedCause(event);
+        const suspectedCauseEventId = await findSuspectedCause(event);
         
-        const existingIssue = issueStore.findByFingerprint(event.serviceName, fingerprint);
+        const existingIssue = await issueStore.findByFingerprint(event.serviceName, fingerprint);
         
         if (existingIssue) {
           const oldCount = existingIssue.count;
-          const updatedIssue = issueStore.incrementIssue(existingIssue.id, event.id, event.timestamp, suspectedCauseEventId);
+          const updatedIssue = await issueStore.incrementIssue(existingIssue.id, event.id, event.timestamp, suspectedCauseEventId);
           console.log(`[Issue] ✅ UPDATED existing issue "${updatedIssue.title}"`);
           console.log(`       Issue ID: ${updatedIssue.id}`);
           console.log(`       Count: ${oldCount} → ${updatedIssue.count} (incremented by 1)`);
           console.log(`       Related events: ${updatedIssue.relatedEventIds.length}`);
         } else {
-          const newIssue = issueStore.createIssue(event, fingerprint, suspectedCauseEventId);
+          const newIssue = await issueStore.createIssue(event, fingerprint, suspectedCauseEventId);
           console.log(`[Issue] 🆕 CREATED new issue "${newIssue.title}"`);
           console.log(`       Issue ID: ${newIssue.id}`);
           console.log(`       Count: ${newIssue.count}`);
@@ -181,7 +181,7 @@ router.post('/', (req: Request, res: Response) => {
     }
 
     if (event.eventType === EventType.DEPLOY || event.eventType === EventType.CONFIG_CHANGE) {
-      checkIssueResolution(event);
+      await checkIssueResolution(event);
     }
 
     return res.status(201).json(event);
@@ -193,7 +193,7 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
-router.post('/batch', (req: Request, res: Response) => {
+router.post('/batch', async (req: Request, res: Response) => {
   try {
     const dtos: CreateEventDto[] = req.body.events || [];
 
@@ -218,20 +218,20 @@ router.post('/batch', (req: Request, res: Response) => {
       }
     }
 
-    const events = storage.createMany(dtos);
+    const events = await storage.createMany(dtos);
 
     for (const event of events) {
       if (event.eventType === EventType.ERROR) {
         try {
           const fingerprint = generateFingerprint(event);
-          const suspectedCauseEventId = findSuspectedCause(event);
+          const suspectedCauseEventId = await findSuspectedCause(event);
           
-          const existingIssue = issueStore.findByFingerprint(event.serviceName, fingerprint);
+          const existingIssue = await issueStore.findByFingerprint(event.serviceName, fingerprint);
           
           if (existingIssue) {
-            issueStore.incrementIssue(existingIssue.id, event.id, event.timestamp, suspectedCauseEventId);
+            await issueStore.incrementIssue(existingIssue.id, event.id, event.timestamp, suspectedCauseEventId);
           } else {
-            issueStore.createIssue(event, fingerprint, suspectedCauseEventId);
+            await issueStore.createIssue(event, fingerprint, suspectedCauseEventId);
           }
         } catch (error) {
           console.error('Failed to create/update issue:', error);
@@ -241,7 +241,7 @@ router.post('/batch', (req: Request, res: Response) => {
 
     for (const event of events) {
       if (event.eventType === EventType.DEPLOY || event.eventType === EventType.CONFIG_CHANGE) {
-        checkIssueResolution(event);
+        await checkIssueResolution(event);
       }
     }
 
@@ -257,10 +257,10 @@ router.post('/batch', (req: Request, res: Response) => {
   }
 });
 
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const deleted = storage.delete(id);
+    const deleted = await storage.delete(id);
 
     if (!deleted) {
       return res.status(404).json({

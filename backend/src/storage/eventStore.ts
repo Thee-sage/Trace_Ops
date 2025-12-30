@@ -1,12 +1,12 @@
-import { db } from './db';
 import { Event, CreateEventDto, EventType } from '../models/Event';
+import { EventModel } from '../models/EventSchema';
 
 class EventStore {
   private generateId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  create(dto: CreateEventDto): Event {
+  async create(dto: CreateEventDto): Promise<Event> {
     const event: Event = {
       id: this.generateId(),
       timestamp: dto.timestamp || Date.now(),
@@ -16,140 +16,124 @@ class EventStore {
       metadata: dto.metadata,
     };
 
-    const stmt = db.prepare(`
-      INSERT INTO events (id, timestamp, eventType, serviceName, message, metadata)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
+    const eventDoc = new EventModel({
+      _id: event.id,
+      timestamp: event.timestamp,
+      eventType: event.eventType,
+      serviceName: event.serviceName,
+      message: event.message,
+      metadata: event.metadata,
+    });
 
-    stmt.run(
-      event.id,
-      event.timestamp,
-      event.eventType,
-      event.serviceName,
-      event.message,
-      event.metadata ? JSON.stringify(event.metadata) : null
-    );
+    await eventDoc.save();
 
     return event;
   }
 
-  createMany(dtos: CreateEventDto[]): Event[] {
+  async createMany(dtos: CreateEventDto[]): Promise<Event[]> {
     const events: Event[] = [];
-    const insert = db.prepare(`
-      INSERT INTO events (id, timestamp, eventType, serviceName, message, metadata)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
 
-    const insertMany = db.transaction((dtos: CreateEventDto[]) => {
-      for (const dto of dtos) {
-        const event: Event = {
-          id: this.generateId(),
-          timestamp: dto.timestamp || Date.now(),
-          eventType: dto.eventType,
-          serviceName: dto.serviceName,
-          message: dto.message || '',
-          metadata: dto.metadata,
-        };
+    for (const dto of dtos) {
+      const event: Event = {
+        id: this.generateId(),
+        timestamp: dto.timestamp || Date.now(),
+        eventType: dto.eventType,
+        serviceName: dto.serviceName,
+        message: dto.message || '',
+        metadata: dto.metadata,
+      };
 
-        insert.run(
-          event.id,
-          event.timestamp,
-          event.eventType,
-          event.serviceName,
-          event.message,
-          event.metadata ? JSON.stringify(event.metadata) : null
-        );
+      events.push(event);
+    }
 
-        events.push(event);
-      }
-    });
+    const eventDocs = events.map((event) => ({
+      _id: event.id,
+      timestamp: event.timestamp,
+      eventType: event.eventType,
+      serviceName: event.serviceName,
+      message: event.message,
+      metadata: event.metadata,
+    }));
 
-    insertMany(dtos);
+    await EventModel.insertMany(eventDocs);
+
     return events;
   }
 
-  findById(id: string): Event | undefined {
-    const stmt = db.prepare('SELECT * FROM events WHERE id = ?');
-    const row = stmt.get(id) as any;
-
-    if (!row) {
+  async findById(id: string): Promise<Event | undefined> {
+    const doc = await EventModel.findById(id).lean().exec();
+    
+    if (!doc) {
       return undefined;
     }
 
     return {
-      id: row.id,
-      timestamp: row.timestamp,
-      eventType: row.eventType as EventType,
-      serviceName: row.serviceName,
-      message: row.message,
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+      id: doc._id.toString(),
+      timestamp: doc.timestamp,
+      eventType: doc.eventType as EventType,
+      serviceName: doc.serviceName,
+      message: doc.message,
+      metadata: doc.metadata as Record<string, unknown> | undefined,
     };
   }
 
-  findAll(options?: {
+  async findAll(options?: {
     serviceName?: string;
     eventType?: EventType;
     startTime?: number;
     endTime?: number;
-  }): Event[] {
-    let query = 'SELECT * FROM events WHERE 1=1';
-    const params: any[] = [];
+  }): Promise<Event[]> {
+    const query: any = {};
 
     if (options?.serviceName) {
-      query += ' AND serviceName = ?';
-      params.push(options.serviceName);
+      query.serviceName = options.serviceName;
     }
 
     if (options?.eventType) {
-      query += ' AND eventType = ?';
-      params.push(options.eventType);
+      query.eventType = options.eventType;
     }
 
-    if (options?.startTime !== undefined) {
-      query += ' AND timestamp >= ?';
-      params.push(options.startTime);
+    if (options?.startTime !== undefined || options?.endTime !== undefined) {
+      query.timestamp = {};
+      if (options.startTime !== undefined) {
+        query.timestamp.$gte = options.startTime;
+      }
+      if (options.endTime !== undefined) {
+        query.timestamp.$lte = options.endTime;
+      }
     }
 
-    if (options?.endTime !== undefined) {
-      query += ' AND timestamp <= ?';
-      params.push(options.endTime);
-    }
+    const docs = await EventModel.find(query)
+      .sort({ timestamp: -1 })
+      .lean()
+      .exec();
 
-    query += ' ORDER BY timestamp DESC';
-
-    const stmt = db.prepare(query);
-    const rows = stmt.all(...params) as any[];
-
-    return rows.map((row) => ({
-      id: row.id,
-      timestamp: row.timestamp,
-      eventType: row.eventType as EventType,
-      serviceName: row.serviceName,
-      message: row.message,
-      metadata: row.metadata ? JSON.parse(row.metadata) : undefined,
+    return docs.map((doc) => ({
+      id: doc._id.toString(),
+      timestamp: doc.timestamp,
+      eventType: doc.eventType as EventType,
+      serviceName: doc.serviceName,
+      message: doc.message,
+      metadata: doc.metadata as Record<string, unknown> | undefined,
     }));
   }
 
-  delete(id: string): boolean {
-    const stmt = db.prepare('DELETE FROM events WHERE id = ?');
-    const result = stmt.run(id);
-    return result.changes > 0;
+  async delete(id: string): Promise<boolean> {
+    const result = await EventModel.findByIdAndDelete(id).exec();
+    return result !== null;
   }
 
-  clear(): void {
-    db.exec('DELETE FROM events');
+  async clear(): Promise<void> {
+    await EventModel.deleteMany({}).exec();
   }
 
-  count(): number {
-    const stmt = db.prepare('SELECT COUNT(*) as count FROM events');
-    const row = stmt.get() as any;
-    return row.count;
+  async count(): Promise<number> {
+    return await EventModel.countDocuments({}).exec();
   }
 
-  listServices(): string[] {
-    const stmt = db.prepare('SELECT DISTINCT serviceName FROM events ORDER BY serviceName');
-    const rows = stmt.all() as any[];
-    return rows.map((row) => row.serviceName);
+  async listServices(): Promise<string[]> {
+    const serviceNames = await EventModel.distinct('serviceName').exec();
+    return serviceNames.sort();
   }
 }
 

@@ -4,87 +4,96 @@ import { logger } from './utils/logger';
 import { blockchainService } from './services/blockchain';
 import { storage } from './services/storage';
 import { EventType } from './models/Event';
-// Ensure database is initialized early
-import './storage/db';
+import { connectToMongoDB } from './db/mongo';
 
-const app = createApp();
+async function startServer(): Promise<void> {
+  // Connect to MongoDB first
+  await connectToMongoDB();
 
-blockchainService.initialize().catch((error) => {
-  logger.warn('Blockchain service initialization failed (continuing without it)', error);
-});
+  const app = createApp();
 
-function seedDemoData(): void {
-  if (config.nodeEnv !== 'development') {
-    return;
+  blockchainService.initialize().catch((error) => {
+    logger.warn('Blockchain service initialization failed (continuing without it)', error);
+  });
+
+  async function seedDemoData(): Promise<void> {
+    if (config.nodeEnv !== 'development') {
+      return;
+    }
+
+    const serviceName = 'demo-service';
+
+    const existing = await storage.findAll({ serviceName });
+    for (const event of existing) {
+      await storage.delete(event.id);
+    }
+
+    const now = Date.now();
+
+    await storage.create({
+      eventType: EventType.DEPLOY,
+      serviceName,
+      message: 'Demo deploy: version v1.0.0',
+      timestamp: now - 6 * 60 * 1000,
+    });
+
+    await storage.create({
+      eventType: EventType.CONFIG_CHANGE,
+      serviceName,
+      message: 'Demo config change: timeout=1s',
+      timestamp: now - 4 * 60 * 1000,
+    });
+
+    await storage.create({
+      eventType: EventType.ERROR,
+      serviceName,
+      message: 'Demo error: payment timeout',
+      timestamp: now - 1 * 60 * 1000,
+    });
+
+    logger.info('Seeded demo events for demo-service', {
+      serviceName,
+      eventCount: 3,
+    });
   }
 
-  const serviceName = 'demo-service';
+  const configValidation = validateAwsConfig();
+  if (!configValidation.valid) {
+    configValidation.errors.forEach((error) => logger.warn(`Config validation: ${error}`));
+  }
 
-  const existing = storage.findAll({ serviceName });
-  existing.forEach((event) => {
-    storage.delete(event.id);
+  await seedDemoData();
+
+  const server = app.listen(config.port, () => {
+    logger.info('TraceOps Backend started', {
+      port: config.port,
+      environment: config.nodeEnv,
+      corsOrigin: config.corsOrigin,
+      awsRegion: config.awsRegion,
+      cloudWatchLogGroup: config.awsCloudWatchLogGroup,
+    });
   });
 
-  const now = Date.now();
-
-  storage.create({
-    eventType: EventType.DEPLOY,
-    serviceName,
-    message: 'Demo deploy: version v1.0.0',
-    timestamp: now - 6 * 60 * 1000,
+  process.on('SIGTERM', () => {
+    logger.info('SIGTERM received, shutting down gracefully...');
+    server.close(() => {
+      logger.info('Server closed');
+      process.exit(0);
+    });
   });
 
-  storage.create({
-    eventType: EventType.CONFIG_CHANGE,
-    serviceName,
-    message: 'Demo config change: timeout=1s',
-    timestamp: now - 4 * 60 * 1000,
-  });
-
-  storage.create({
-    eventType: EventType.ERROR,
-    serviceName,
-    message: 'Demo error: payment timeout',
-    timestamp: now - 1 * 60 * 1000,
-  });
-
-  logger.info('Seeded demo events for demo-service', {
-    serviceName,
-    eventCount: 3,
+  process.on('SIGINT', () => {
+    logger.info('SIGINT received, shutting down gracefully...');
+    server.close(() => {
+      logger.info('Server closed');
+      process.exit(0);
+    });
   });
 }
 
-const configValidation = validateAwsConfig();
-if (!configValidation.valid) {
-  configValidation.errors.forEach((error) => logger.warn(`Config validation: ${error}`));
-}
-
-seedDemoData();
-
-const server = app.listen(config.port, () => {
-  logger.info('TraceOps Backend started', {
-    port: config.port,
-    environment: config.nodeEnv,
-    corsOrigin: config.corsOrigin,
-    awsRegion: config.awsRegion,
-    cloudWatchLogGroup: config.awsCloudWatchLogGroup,
-  });
-});
-
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully...');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully...');
-  server.close(() => {
-    logger.info('Server closed');
-    process.exit(0);
-  });
+startServer().catch((error) => {
+  logger.error('Failed to start server', error);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {

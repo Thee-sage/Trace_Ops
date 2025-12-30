@@ -6,6 +6,7 @@ export interface Config {
   port: number;
   nodeEnv: 'development' | 'production' | 'test';
   corsOrigin: string;
+  mongodbUri: string;
   awsRegion?: string;
   awsCloudWatchLogGroup?: string;
   logLevel?: string;
@@ -23,6 +24,7 @@ export const config: Config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: (process.env.NODE_ENV as Config['nodeEnv']) || 'development',
   corsOrigin: normalizeCorsOrigin(process.env.CORS_ORIGIN),
+  mongodbUri: process.env.MONGODB_URI || '',
   awsRegion: process.env.AWS_REGION,
   awsCloudWatchLogGroup: process.env.AWS_CLOUDWATCH_LOG_GROUP,
   logLevel: process.env.LOG_LEVEL || 'INFO',
@@ -33,6 +35,10 @@ export const config: Config = {
 
 export function validateAwsConfig(): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
+
+  if (!config.mongodbUri) {
+    errors.push('MONGODB_URI must be set');
+  }
 
   if (config.nodeEnv === 'production') {
     if (!config.corsOrigin || config.corsOrigin === 'http://localhost:5173') {

@@ -1,156 +1,157 @@
-import { db } from './db';
 import { Issue } from '../models/Issue';
+import { IssueModel } from '../models/IssueSchema';
 
 class IssueStoreDb {
-  findById(id: string): Issue | undefined {
-    const stmt = db.prepare('SELECT * FROM issues WHERE id = ?');
-    const row = stmt.get(id) as any;
-
-    if (!row) {
+  async findById(id: string): Promise<Issue | undefined> {
+    const doc = await IssueModel.findById(id).lean().exec();
+    
+    if (!doc) {
       return undefined;
     }
 
-    return this.rowToIssue(row);
+    return this.docToIssue(doc);
   }
 
-  findByFingerprint(serviceName: string, fingerprint: string): Issue | undefined {
-    const stmt = db.prepare('SELECT * FROM issues WHERE fingerprint = ? AND serviceName = ?');
-    const row = stmt.get(fingerprint, serviceName) as any;
-
-    if (!row) {
+  async findByFingerprint(serviceName: string, fingerprint: string): Promise<Issue | undefined> {
+    const doc = await IssueModel.findOne({ serviceName, fingerprint }).lean().exec();
+    
+    if (!doc) {
       return undefined;
     }
 
-    return this.rowToIssue(row);
+    return this.docToIssue(doc);
   }
 
-  insert(issue: Issue): void {
-    const stmt = db.prepare(`
-      INSERT INTO issues (
-        serviceName, fingerprint, id, status, count, severity, regressionCount,
-        priorityScore, firstSeen, lastSeen, resolvedAt, suspectedCauseEventId,
-        resolvedByEventId, title, uniqueRoutes, uniqueUsers, errorRate, priorityReason, relatedEventIds
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
+  async insert(issue: Issue): Promise<void> {
+    const issueDoc = new IssueModel({
+      _id: issue.id,
+      serviceName: issue.serviceName,
+      fingerprint: issue.fingerprint,
+      title: issue.title,
+      firstSeen: issue.firstSeen,
+      lastSeen: issue.lastSeen,
+      count: issue.count,
+      severity: issue.severity,
+      relatedEventIds: issue.relatedEventIds,
+      suspectedCauseEventId: issue.suspectedCauseEventId,
+      status: issue.status,
+      resolvedAt: issue.resolvedAt,
+      resolvedByEventId: issue.resolvedByEventId,
+      regressionCount: issue.regressionCount,
+      uniqueRoutes: issue.uniqueRoutes,
+      uniqueUsers: issue.uniqueUsers,
+      errorRate: issue.errorRate,
+      priorityScore: issue.priorityScore,
+      priorityReason: issue.priorityReason,
+    });
 
-    stmt.run(
-      issue.serviceName,
-      issue.fingerprint,
-      issue.id,
-      issue.status,
-      issue.count,
-      issue.severity,
-      issue.regressionCount,
-      issue.priorityScore,
-      issue.firstSeen,
-      issue.lastSeen,
-      issue.resolvedAt || null,
-      issue.suspectedCauseEventId || null,
-      issue.resolvedByEventId || null,
-      issue.title,
-      issue.uniqueRoutes,
-      issue.uniqueUsers || null,
-      issue.errorRate,
-      issue.priorityReason || null,
-      JSON.stringify(issue.relatedEventIds)
-    );
+    await issueDoc.save();
   }
 
-  update(issue: Issue): void {
-    const stmt = db.prepare(`
-      UPDATE issues SET
-        id = ?, status = ?, count = ?, severity = ?,
-        regressionCount = ?, priorityScore = ?, firstSeen = ?, lastSeen = ?,
-        resolvedAt = ?, suspectedCauseEventId = ?, resolvedByEventId = ?,
-        title = ?, uniqueRoutes = ?, uniqueUsers = ?, errorRate = ?,
-        priorityReason = ?, relatedEventIds = ?
-      WHERE serviceName = ? AND fingerprint = ?
-    `);
-
-    stmt.run(
-      issue.id,
-      issue.status,
-      issue.count,
-      issue.severity,
-      issue.regressionCount,
-      issue.priorityScore,
-      issue.firstSeen,
-      issue.lastSeen,
-      issue.resolvedAt || null,
-      issue.suspectedCauseEventId || null,
-      issue.resolvedByEventId || null,
-      issue.title,
-      issue.uniqueRoutes,
-      issue.uniqueUsers || null,
-      issue.errorRate,
-      issue.priorityReason || null,
-      JSON.stringify(issue.relatedEventIds),
-      issue.serviceName,
-      issue.fingerprint
-    );
+  async update(issue: Issue): Promise<void> {
+    await IssueModel.findOneAndUpdate(
+      { serviceName: issue.serviceName, fingerprint: issue.fingerprint },
+      {
+        _id: issue.id,
+        title: issue.title,
+        firstSeen: issue.firstSeen,
+        lastSeen: issue.lastSeen,
+        count: issue.count,
+        severity: issue.severity,
+        relatedEventIds: issue.relatedEventIds,
+        suspectedCauseEventId: issue.suspectedCauseEventId,
+        status: issue.status,
+        resolvedAt: issue.resolvedAt,
+        resolvedByEventId: issue.resolvedByEventId,
+        regressionCount: issue.regressionCount,
+        uniqueRoutes: issue.uniqueRoutes,
+        uniqueUsers: issue.uniqueUsers,
+        errorRate: issue.errorRate,
+        priorityScore: issue.priorityScore,
+        priorityReason: issue.priorityReason,
+      },
+      { upsert: false }
+    ).exec();
   }
 
-  upsert(issue: Issue): void {
-    // SQLite doesn't support INSERT OR REPLACE with all columns easily, so we check and update/insert
-    const existing = this.findByFingerprint(issue.serviceName, issue.fingerprint);
-    if (existing) {
-      this.update(issue);
-    } else {
-      this.insert(issue);
-    }
+  async upsert(issue: Issue): Promise<void> {
+    await IssueModel.findOneAndUpdate(
+      { serviceName: issue.serviceName, fingerprint: issue.fingerprint },
+      {
+        _id: issue.id,
+        title: issue.title,
+        firstSeen: issue.firstSeen,
+        lastSeen: issue.lastSeen,
+        count: issue.count,
+        severity: issue.severity,
+        relatedEventIds: issue.relatedEventIds,
+        suspectedCauseEventId: issue.suspectedCauseEventId,
+        status: issue.status,
+        resolvedAt: issue.resolvedAt,
+        resolvedByEventId: issue.resolvedByEventId,
+        regressionCount: issue.regressionCount,
+        uniqueRoutes: issue.uniqueRoutes,
+        uniqueUsers: issue.uniqueUsers,
+        errorRate: issue.errorRate,
+        priorityScore: issue.priorityScore,
+        priorityReason: issue.priorityReason,
+      },
+      { upsert: true }
+    ).exec();
   }
 
-  listIssues(serviceName: string): Issue[] {
-    const stmt = db.prepare('SELECT * FROM issues WHERE serviceName = ? ORDER BY lastSeen DESC');
-    const rows = stmt.all(serviceName) as any[];
+  async listIssues(serviceName: string): Promise<Issue[]> {
+    const docs = await IssueModel.find({ serviceName })
+      .sort({ lastSeen: -1 })
+      .lean()
+      .exec();
 
-    return rows.map((row) => this.rowToIssue(row));
+    return docs.map((doc) => this.docToIssue(doc));
   }
 
-  getOpenIssues(serviceName: string): Issue[] {
-    const stmt = db.prepare('SELECT * FROM issues WHERE serviceName = ? AND status = ?');
-    const rows = stmt.all(serviceName, 'open') as any[];
+  async getOpenIssues(serviceName: string): Promise<Issue[]> {
+    const docs = await IssueModel.find({ serviceName, status: 'open' })
+      .lean()
+      .exec();
 
-    return rows.map((row) => this.rowToIssue(row));
+    return docs.map((doc) => this.docToIssue(doc));
   }
 
-  getTopIssuesByPriority(serviceName: string, limit: number = 3): Issue[] {
-    const stmt = db.prepare(`
-      SELECT * FROM issues
-      WHERE serviceName = ? AND status = ?
-      ORDER BY priorityScore DESC
-      LIMIT ?
-    `);
-    const rows = stmt.all(serviceName, 'open', limit) as any[];
+  async getTopIssuesByPriority(serviceName: string, limit: number = 3): Promise<Issue[]> {
+    const docs = await IssueModel.find({ serviceName, status: 'open' })
+      .sort({ priorityScore: -1 })
+      .limit(limit)
+      .lean()
+      .exec();
 
-    return rows.map((row) => this.rowToIssue(row));
+    return docs.map((doc) => this.docToIssue(doc));
   }
 
-  clear(): void {
-    db.exec('DELETE FROM issues');
+  async clear(): Promise<void> {
+    await IssueModel.deleteMany({}).exec();
   }
 
-  private rowToIssue(row: any): Issue {
+  private docToIssue(doc: any): Issue {
     return {
-      id: row.id,
-      serviceName: row.serviceName,
-      fingerprint: row.fingerprint,
-      title: row.title,
-      firstSeen: row.firstSeen,
-      lastSeen: row.lastSeen,
-      count: row.count,
-      severity: row.severity as 'low' | 'medium' | 'high' | 'critical',
-      relatedEventIds: JSON.parse(row.relatedEventIds),
-      suspectedCauseEventId: row.suspectedCauseEventId || undefined,
-      status: row.status as 'open' | 'resolved',
-      resolvedAt: row.resolvedAt || undefined,
-      resolvedByEventId: row.resolvedByEventId || undefined,
-      regressionCount: row.regressionCount,
-      uniqueRoutes: row.uniqueRoutes,
-      uniqueUsers: row.uniqueUsers || undefined,
-      errorRate: row.errorRate,
-      priorityScore: row.priorityScore,
-      priorityReason: row.priorityReason || undefined,
+      id: doc._id.toString(),
+      serviceName: doc.serviceName,
+      fingerprint: doc.fingerprint,
+      title: doc.title,
+      firstSeen: doc.firstSeen,
+      lastSeen: doc.lastSeen,
+      count: doc.count,
+      severity: doc.severity as 'low' | 'medium' | 'high' | 'critical',
+      relatedEventIds: doc.relatedEventIds || [],
+      suspectedCauseEventId: doc.suspectedCauseEventId || undefined,
+      status: doc.status as 'open' | 'resolved',
+      resolvedAt: doc.resolvedAt || undefined,
+      resolvedByEventId: doc.resolvedByEventId || undefined,
+      regressionCount: doc.regressionCount,
+      uniqueRoutes: doc.uniqueRoutes,
+      uniqueUsers: doc.uniqueUsers || undefined,
+      errorRate: doc.errorRate,
+      priorityScore: doc.priorityScore,
+      priorityReason: doc.priorityReason || undefined,
     };
   }
 }

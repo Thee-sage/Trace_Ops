@@ -4,7 +4,7 @@ import { storage } from '../services/storage';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const { serviceName } = req.query;
 
@@ -14,9 +14,9 @@ router.get('/', (req: Request, res: Response) => {
       });
     }
 
-    const issues = issueStore.listIssues(serviceName);
+    const issues = await issueStore.listIssues(serviceName);
 
-    const enrichedIssues = issues.map(issue => {
+    const enrichedIssues = await Promise.all(issues.map(async (issue) => {
       const result: any = {
         id: issue.id,
         title: issue.title,
@@ -38,7 +38,7 @@ router.get('/', (req: Request, res: Response) => {
         result.resolvedAt = issue.resolvedAt;
       }
       if (issue.resolvedByEventId) {
-        const resolvedByEvent = storage.findById(issue.resolvedByEventId);
+        const resolvedByEvent = await storage.findById(issue.resolvedByEventId);
         if (resolvedByEvent) {
           result.resolvedBy = {
             type: resolvedByEvent.eventType,
@@ -50,7 +50,7 @@ router.get('/', (req: Request, res: Response) => {
       }
 
       if (issue.suspectedCauseEventId) {
-        const causeEvent = storage.findById(issue.suspectedCauseEventId);
+        const causeEvent = await storage.findById(issue.suspectedCauseEventId);
         if (causeEvent) {
           result.suspectedCause = {
             type: causeEvent.eventType,
@@ -62,7 +62,7 @@ router.get('/', (req: Request, res: Response) => {
       }
 
       return result;
-    });
+    }));
 
     return res.json(enrichedIssues);
   } catch (error) {
@@ -73,7 +73,7 @@ router.get('/', (req: Request, res: Response) => {
   }
 });
 
-router.get('/needs-attention', (req: Request, res: Response) => {
+router.get('/needs-attention', async (req: Request, res: Response) => {
   try {
     const { serviceName, limit } = req.query;
 
@@ -84,9 +84,9 @@ router.get('/needs-attention', (req: Request, res: Response) => {
     }
 
     const limitNum = limit ? parseInt(limit as string, 10) : 3;
-    const topIssues = issueStore.getTopIssuesByPriority(serviceName, limitNum);
+    const topIssues = await issueStore.getTopIssuesByPriority(serviceName, limitNum);
 
-    const enrichedIssues = topIssues.map(issue => {
+    const enrichedIssues = await Promise.all(topIssues.map(async (issue) => {
       const result: any = {
         id: issue.id,
         title: issue.title,
@@ -103,7 +103,7 @@ router.get('/needs-attention', (req: Request, res: Response) => {
       };
 
       if (issue.suspectedCauseEventId) {
-        const causeEvent = storage.findById(issue.suspectedCauseEventId);
+        const causeEvent = await storage.findById(issue.suspectedCauseEventId);
         if (causeEvent) {
           result.suspectedCause = {
             type: causeEvent.eventType,
@@ -115,7 +115,7 @@ router.get('/needs-attention', (req: Request, res: Response) => {
       }
 
       return result;
-    });
+    }));
 
     return res.json(enrichedIssues);
   } catch (error) {

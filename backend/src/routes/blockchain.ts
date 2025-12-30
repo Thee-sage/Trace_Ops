@@ -16,7 +16,7 @@ router.post('/anchor/:serviceName', async (req: Request, res: Response) => {
       });
     }
 
-    const events = storage.findAll({ serviceName });
+    const events = await storage.findAll({ serviceName });
 
     if (events.length === 0) {
       return res.status(404).json({
