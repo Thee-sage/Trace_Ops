@@ -66,7 +66,10 @@ export function TimelineView({ events, loading, highlightedEventIds }: TimelineV
     );
   }
 
-  if (events.length === 0) {
+  // Defensive check: ensure events is always an array
+  const eventsArray = Array.isArray(events) ? events : [];
+
+  if (eventsArray.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         No events found. Select a service to view its timeline.
@@ -79,7 +82,7 @@ export function TimelineView({ events, loading, highlightedEventIds }: TimelineV
       <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-slate-800" />
       
       <div className="space-y-6">
-        {events.map((event, index) => {
+        {eventsArray.map((event, index) => {
           const isHighlighted = highlightedEventIds?.has(event.id);
           const borderColor = getEventTypeBorderColor(event.eventType);
           const dotColor = getEventTypeDotColor(event.eventType);

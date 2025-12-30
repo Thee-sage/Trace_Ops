@@ -64,11 +64,14 @@ function App() {
           `${API_BASE}/events?serviceName=${encodeURIComponent(selectedService)}`
         );
         console.log("EVENTS status:", eventsRes.status);
-        const events = await eventsRes.json();
-        console.log("EVENTS data:", events);
-        setTimelineEvents(events);
+        const data = await eventsRes.json();
+        console.log("EVENTS data:", data);
+        // Backend returns { events: Event[], count: number }
+        const eventsArray = Array.isArray(data?.events) ? data.events : [];
+        setTimelineEvents(eventsArray);
       } catch (error) {
         console.error("[TraceOps] Fetch failed", error);
+        setTimelineEvents([]);
       }
 
       try {
