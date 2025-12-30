@@ -6,6 +6,8 @@ import { NeedsAttentionView } from './components/NeedsAttentionView';
 import { fetchTimeline, fetchServices, fetchIssues, fetchNeedsAttention } from './api/client';
 import { TimelineEvent, Issue } from './types/event';
 
+const API_BASE = "https://trace-ops.onrender.com";
+
 function App() {
   const [services, setServices] = useState<string[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
@@ -21,28 +23,48 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (selectedService) {
-      loadTimeline(selectedService, true);
-      loadIssues(selectedService);
-      loadNeedsAttention(selectedService);
-    } else {
-      setTimelineEvents([]);
-      setIssues([]);
-      setNeedsAttention([]);
-      setHighlightedEventIds(new Set());
+    console.log("🔁 EFFECT FIRED");
+    console.log("Selected service:", selectedService);
+
+    if (!selectedService) {
+      console.warn("❌ No service selected yet");
+      return;
     }
-  }, [selectedService]);
 
-  useEffect(() => {
-    if (!selectedService) return;
+    const fetchAll = async () => {
+      try {
+        console.log("➡️ Fetching EVENTS");
+        const eventsRes = await fetch(
+          `${API_BASE}/events?serviceName=${encodeURIComponent(selectedService)}`
+        );
+        console.log("EVENTS status:", eventsRes.status);
+        const events = await eventsRes.json();
+        console.log("EVENTS data:", events);
+        setTimelineEvents(events);
 
-    const pollInterval = setInterval(() => {
-      loadTimeline(selectedService);
-      loadIssues(selectedService);
-      loadNeedsAttention(selectedService);
-    }, 5000);
+        console.log("➡️ Fetching ISSUES");
+        const issuesRes = await fetch(
+          `${API_BASE}/issues?serviceName=${encodeURIComponent(selectedService)}`
+        );
+        console.log("ISSUES status:", issuesRes.status);
+        const issues = await issuesRes.json();
+        console.log("ISSUES data:", issues);
+        setIssues(issues);
 
-    return () => clearInterval(pollInterval);
+        console.log("➡️ Fetching NEEDS ATTENTION");
+        const naRes = await fetch(
+          `${API_BASE}/issues/needs-attention?serviceName=${encodeURIComponent(selectedService)}`
+        );
+        console.log("NEEDS ATTENTION status:", naRes.status);
+        const needsAttention = await naRes.json();
+        console.log("NEEDS ATTENTION data:", needsAttention);
+        setNeedsAttention(needsAttention);
+      } catch (err) {
+        console.error("🔥 FETCH FAILED:", err);
+      }
+    };
+
+    fetchAll();
   }, [selectedService]);
 
   async function loadServices() {
@@ -179,7 +201,10 @@ function App() {
                     <ServiceSelector
                       services={services}
                       selectedService={selectedService}
-                      onSelect={setSelectedService}
+                      onSelect={(value) => {
+                        console.log("🔽 Service changed to:", value);
+                        setSelectedService(value);
+                      }}
                       loading={loading}
                     />
                   </div>
@@ -226,7 +251,10 @@ function App() {
               <ServiceSelector
                 services={services}
                 selectedService={selectedService}
-                onSelect={setSelectedService}
+                onSelect={(value) => {
+                  console.log("🔽 Service changed to:", value);
+                  setSelectedService(value);
+                }}
                 loading={loading}
               />
             </div>
@@ -240,6 +268,10 @@ function App() {
             highlightedEventIds={highlightedEventIds}
           />
         )}
+
+        <pre style={{ color: "lime", fontSize: 12 }}>
+          {JSON.stringify({ selectedService, events: timelineEvents, issues }, null, 2)}
+        </pre>
       </div>
     </div>
   );
