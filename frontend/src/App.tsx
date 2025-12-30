@@ -302,10 +302,6 @@ function App() {
             highlightedEventIds={highlightedEventIds}
           />
         )}
-
-        <pre style={{ color: "lime", fontSize: 12 }}>
-          {JSON.stringify({ selectedService, events: timelineEvents, issues }, null, 2)}
-        </pre>
       </div>
     </div>
   );
