@@ -1,4 +1,4 @@
-import express, { Express } from 'express';
+import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import { config } from './utils/config';
 import { logger } from './utils/logger';
@@ -22,7 +22,7 @@ export function createApp(): Express {
   app.use('/issues', issuesRouter);
   app.use('/blockchain', blockchainRouter);
 
-  app.get('/', (_req, res) => {
+  app.get('/', (_req: Request, res: Response) => {
     res.json({
       name: 'TraceOps Backend',
       version: '0.1.0',
@@ -30,7 +30,7 @@ export function createApp(): Express {
     });
   });
 
-  app.use((req, res) => {
+  app.use((req: Request, res: Response) => {
     res.status(404).json({
       error: 'Not found',
       path: req.path,
