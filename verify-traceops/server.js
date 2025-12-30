@@ -60,7 +60,7 @@ app.listen(PORT, () => {
   console.log(`  - DEPLOY event (on server start)`);
   console.log(`  - ERROR events (when error routes are called)`);
   console.log(`  - CONFIG_CHANGE event (when TEST_VALUE changes and server restarts)`);
-  console.log(`\nTraceOps endpoint: ${process.env.TRACEOPS_ENDPOINT || 'http://localhost:3000'}`);
+  console.log(`\nTraceOps endpoint: ${process.env.TRACEOPS_ENDPOINT || 'https://trace-ops.onrender.com'}`);
   console.log(`\nSee scenarios.md for detailed testing instructions`);
   console.log(`\nPress Ctrl+C to stop\n`);
 });
