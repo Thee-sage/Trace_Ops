@@ -1,0 +1,24 @@
+{
+  "name": "traceops-verify-app",
+  "version": "1.0.0",
+  "description": "Verification app for TraceOps automatic event capture",
+  "main": "server.js",
+  "type": "module",
+  "tsx": {
+    "esbuildOptions": {
+      "format": "esm"
+    }
+  },
+  "scripts": {
+    "start": "tsx server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "tsx": "^4.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

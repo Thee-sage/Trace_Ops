@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: traceops-backend
+    runtime: node
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: CORS_ORIGIN
+        sync: false  # Set this to your Vercel frontend URL after deployment
+      - key: LOG_LEVEL
+        value: INFO
+      # Optional: Add these if you need blockchain functionality
+      # - key: ETHEREUM_RPC_URL
+      #   sync: false
+      # - key: ETHEREUM_PRIVATE_KEY
+      #   sync: false
+      # - key: ETHEREUM_CONTRACT_ADDRESS
+      #   sync: false
+
