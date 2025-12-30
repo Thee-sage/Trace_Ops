@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { ServiceSelector } from './components/ServiceSelector';
+import { ServiceOverview } from './components/ServiceOverview';
 import { TimelineView } from './components/TimelineView';
 import { IssuesView } from './components/IssuesView';
 import { NeedsAttentionView } from './components/NeedsAttentionView';
 import { fetchTimeline, fetchIssues, fetchNeedsAttention } from './api/client';
 import { TimelineEvent, Issue } from './types/event';
+import logo from './assets/logo.jpeg';
 
 const API_BASE = "https://trace-ops.onrender.com";
 
@@ -176,17 +178,50 @@ function App() {
     }, 4000);
   }
 
+  // Show Service Overview when no service is selected
+  if (!selectedService) {
+    return (
+      <>
+        {error && (
+          <div className="fixed top-4 right-4 z-50 p-4 bg-slate-900 border border-red-600 rounded-lg text-red-400 max-w-md">
+            Error: {error}
+          </div>
+        )}
+        <ServiceOverview
+          services={services}
+          onSelectService={(serviceName) => {
+            console.log("🔽 Service selected:", serviceName);
+            setSelectedService(serviceName);
+          }}
+          loading={loading}
+        />
+      </>
+    );
+  }
+
+  // Show dashboard when service is selected
   return (
     <div className="min-h-screen bg-slate-950">
       <div className="max-w-[1400px] mx-auto px-8 py-16">
-        <header className="mb-16">
-          <h1 className="text-3xl font-semibold text-gray-200 mb-2">
-            TraceOps
-          </h1>
-          <p className="text-gray-400">
-            Incident Timeline & Root-Cause Engine
-          </p>
-        </header>
+        <button
+          onClick={() => setSelectedService(null)}
+          className="mb-8 text-sm text-gray-400 hover:text-gray-300 flex items-center gap-2 transition-colors"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          All services
+        </button>
 
         {error && (
           <div className="mb-16 p-5 bg-slate-950 border border-red-600 rounded-lg text-red-600">
@@ -194,114 +229,101 @@ function App() {
           </div>
         )}
 
-        {services.length === 0 && !loading && (
-          <div className="mb-16 p-5 bg-slate-950 border border-yellow-600 rounded-lg text-yellow-600">
-            No services available
+        <header className="mb-16">
+          <div className="flex items-center gap-3 mb-2">
+            <img 
+              src={logo} 
+              alt="TraceOps Logo" 
+              className="h-10 w-auto"
+            />
+            <h1 className="text-3xl font-semibold text-gray-200">
+              TraceOps
+            </h1>
           </div>
-        )}
+          <p className="text-gray-400">
+            Incident Timeline & Root-Cause Engine
+          </p>
+        </header>
 
-        {selectedService ? (
-          <>
-            <div className="grid grid-cols-10 gap-8 mb-20">
-              <div className="col-span-7 space-y-20">
-                <NeedsAttentionView
-                  issues={needsAttention}
-                  loading={loading}
-                  onIssueClick={handleIssueClick}
-                />
+        <div className="grid grid-cols-10 gap-8 mb-20">
+          <div className="col-span-7 space-y-20">
+            <NeedsAttentionView
+              issues={needsAttention}
+              loading={loading}
+              onIssueClick={handleIssueClick}
+            />
 
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-200 mb-3">
-                    Issues: {selectedService}
-                  </h2>
-                  <p className="text-sm text-gray-500 mb-8">
-                    {issues.length} issue{issues.length !== 1 ? 's' : ''} found
-                  </p>
-                  <IssuesView 
-                    issues={issues} 
-                    loading={loading}
-                    onIssueClick={handleIssueClick}
-                    highlightedEventIds={highlightedEventIds}
-                  />
-                </div>
-              </div>
-
-              <div className="col-span-3">
-                <div className="space-y-8">
-                  <div className="p-6 bg-slate-900 border border-slate-800 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">
-                      Controls
-                    </h3>
-                    <ServiceSelector
-                      services={services}
-                      selectedService={selectedService}
-                      onSelect={(value) => {
-                        console.log("🔽 Service changed to:", value);
-                        setSelectedService(value);
-                      }}
-                      loading={loading}
-                    />
-                  </div>
-
-                  <div className="p-6 bg-slate-900 border border-slate-800 rounded-lg">
-                    <h3 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">
-                      Overview
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Total Issues</div>
-                        <div className="text-2xl font-semibold text-gray-200">{issues.length}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Needs Attention</div>
-                        <div className="text-2xl font-semibold text-gray-200">{needsAttention.length}</div>
-                      </div>
-                      <div>
-                        <div className="text-xs text-gray-500 mb-1">Timeline Events</div>
-                        <div className="text-2xl font-semibold text-gray-200">{timelineEvents.length}</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-16">
+            <div>
               <h2 className="text-xl font-semibold text-gray-200 mb-3">
-                Timeline: {selectedService}
+                Issues: {selectedService}
               </h2>
               <p className="text-sm text-gray-500 mb-8">
-                {timelineEvents.length} event{timelineEvents.length !== 1 ? 's' : ''} found
+                {issues.length} issue{issues.length !== 1 ? 's' : ''} found
               </p>
-            </div>
-          </>
-        ) : (
-          <div className="max-w-md mx-auto">
-            <div className="p-6 bg-slate-900 border border-slate-800 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">
-                Select Service
-              </h3>
-              <ServiceSelector
-                services={services}
-                selectedService={selectedService}
-                onSelect={(value) => {
-                  console.log("🔽 Service changed to:", value);
-                  setSelectedService(value);
-                }}
+              <IssuesView 
+                issues={issues} 
                 loading={loading}
+                onIssueClick={handleIssueClick}
+                highlightedEventIds={highlightedEventIds}
               />
             </div>
           </div>
-        )}
 
-        {selectedService && (
-          <TimelineView 
-            events={timelineEvents} 
-            loading={loading}
-            highlightedEventIds={highlightedEventIds}
-          />
-        )}
+          <div className="col-span-3">
+            <div className="space-y-8">
+              <div className="p-6 bg-slate-900 border border-slate-800 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">
+                  Controls
+                </h3>
+                <ServiceSelector
+                  services={services}
+                  selectedService={selectedService}
+                  onSelect={(value) => {
+                    console.log("🔽 Service changed to:", value);
+                    setSelectedService(value);
+                  }}
+                  loading={loading}
+                />
+              </div>
+
+              <div className="p-6 bg-slate-900 border border-slate-800 rounded-lg">
+                <h3 className="text-sm font-medium text-gray-400 mb-4 uppercase tracking-wide">
+                  Overview
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Total Issues</div>
+                    <div className="text-2xl font-semibold text-gray-200">{issues.length}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Needs Attention</div>
+                    <div className="text-2xl font-semibold text-gray-200">{needsAttention.length}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-gray-500 mb-1">Timeline Events</div>
+                    <div className="text-2xl font-semibold text-gray-200">{timelineEvents.length}</div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-16">
+          <h2 className="text-xl font-semibold text-gray-200 mb-3">
+            Timeline: {selectedService}
+          </h2>
+          <p className="text-sm text-gray-500 mb-8">
+            {timelineEvents.length} event{timelineEvents.length !== 1 ? 's' : ''} found
+          </p>
+        </div>
+
+        <TimelineView 
+          events={timelineEvents} 
+          loading={loading}
+          highlightedEventIds={highlightedEventIds}
+        />
       </div>
     </div>
   );

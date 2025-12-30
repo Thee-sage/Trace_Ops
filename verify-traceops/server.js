@@ -12,7 +12,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 TraceOps.init({
-  endpoint: process.env.TRACEOPS_ENDPOINT || 'http://localhost:3000',
+  endpoint: process.env.TRACEOPS_ENDPOINT || 'https://trace-ops.onrender.com',
   serviceName: 'traceops-verify-app'
 });
 
