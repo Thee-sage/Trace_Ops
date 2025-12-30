@@ -4,29 +4,30 @@
   "description": "TraceOps backend service - Incident timeline & root-cause engine",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "echo skipping typescript build",
-    "start": "node -r ts-node/register/transpile-only src/index.ts",
-    "type-check": "tsc --noEmit",
-    "deploy:contract": "hardhat run scripts/deploy-contract.js --network sepolia",
-    "deploy:local": "hardhat run scripts/deploy-contract.js --network hardhat"
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts"
   },
+  "keywords": [
+    "incident",
+    "timeline",
+    "root-cause",
+    "cloudwatch"
+  ],
+  "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "ethers": "^5.7.2",
-    "ts-node": "^10.9.2"
+    "express": "^4.18.2",
+    "ethers": "^5.7.2"
   },
   "devDependencies": {
-    "typescript": "^5.3.3",
     "@types/node": "^20.10.5",
-    "@types/express": "^4.17.25",
-    "@types/cors": "^2.8.19",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
     "ts-node-dev": "^2.0.0",
-    "hardhat": "^2.28.0",
-    "@nomiclabs/hardhat-ethers": "^2.2.3"
+    "typescript": "^5.3.3"
   },
   "engines": {
     "node": ">=18.0.0"
