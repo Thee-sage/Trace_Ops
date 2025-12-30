@@ -1,32 +1,25 @@
 {
   "name": "traceops-backend",
   "version": "0.1.0",
-  "description": "TraceOps backend service - Incident timeline & root-cause engine",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn src/index.ts"
   },
-  "keywords": [
-    "incident",
-    "timeline",
-    "root-cause",
-    "cloudwatch"
-  ],
-  "license": "MIT",
   "dependencies": {
+    "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "ethers": "^5.7.2"
-  },
-  "devDependencies": {
+    "ethers": "^5.7.2",
+
     "@types/node": "18.19.0",
     "@types/express": "^4.17.21",
-    "@types/cors": "^2.8.17",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+    "@types/cors": "^2.8.17"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "ts-node-dev": "^2.0.0"
   },
   "engines": {
     "node": "18.x"
