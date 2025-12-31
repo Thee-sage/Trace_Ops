@@ -328,7 +328,7 @@ function App() {
                   <div className="text-gray-400 text-sm">Loading services...</div>
                 ) : serviceCards.length === 0 ? (
                   <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 text-center">
-                    <p className="text-gray-400 mb-2">Loading services please wait the deployment is still on test servers... </p>
+                    <p className="text-gray-400 mb-2">Loading services, please wait, the deployment is still on test servers... </p>
                     <p className="text-sm text-gray-500">
                       TraceOps automatically discovers services as events arrive.
                     </p>
