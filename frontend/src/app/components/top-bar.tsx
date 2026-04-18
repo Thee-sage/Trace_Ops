@@ -246,17 +246,34 @@ export function TopBar({
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
-        {/* Avatar */}
-        <div
-          className="w-[26px] h-[26px] rounded-full flex items-center justify-center ml-1 cursor-pointer"
-          style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
-          onClick={() => onPageChange('settings')}
-          title={userName || 'Settings'}
-        >
-          <span className="text-[10px]" style={{ color: 'var(--to-text-3)', fontWeight: 500 }}>
-            {userName ? userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : 'TO'}
-          </span>
-        </div>
+        {/* Avatar or Sign in */}
+        {userName ? (
+          <div
+            className="w-[26px] h-[26px] rounded-full flex items-center justify-center ml-1 cursor-pointer"
+            style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
+            onClick={() => onPageChange('settings')}
+            title={userName}
+          >
+            <span className="text-[10px]" style={{ color: 'var(--to-text-3)', fontWeight: 500 }}>
+              {userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+            </span>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              localStorage.removeItem('traceops-guest');
+              window.location.reload();
+            }}
+            className="px-3 py-1.5 rounded-[6px] text-[12px] ml-1 transition-all duration-150"
+            style={{
+              backgroundColor: 'var(--to-brand-bg)',
+              color: 'var(--to-brand-text)',
+              fontWeight: 500,
+            }}
+          >
+            Sign in
+          </button>
+        )}
       </div>
     </header>
   );
