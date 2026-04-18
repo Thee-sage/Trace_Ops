@@ -247,9 +247,9 @@ export function DocsPage() {
 
   return (
     <div className="flex flex-1 overflow-hidden">
-      {/* Sidebar nav */}
+      {/* Sidebar nav — hidden on mobile */}
       <nav
-        className="w-[220px] shrink-0 overflow-y-auto py-4"
+        className="to-docs-sidebar w-[220px] shrink-0 overflow-y-auto py-4"
         style={{
           backgroundColor: 'var(--to-bg-panel)',
           borderRight: '1px solid var(--to-border)',
@@ -302,92 +302,127 @@ export function DocsPage() {
       </nav>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-[720px] mx-auto px-8 py-8">
-          <div className="flex items-center gap-2 mb-1">
-            {(() => { const Icon = activeSection.icon; return <Icon size={16} style={{ color: 'var(--to-text-3)' }} />; })()}
-            <h1 className="text-[22px] leading-[1.3]" style={{ fontWeight: 500, color: 'var(--to-text-1)', letterSpacing: '-0.02em' }}>
-              {activeSection.title}
-            </h1>
-          </div>
-
-          <div className="space-y-8 mt-6">
-            {activeSection.content.map((item, i) => (
-              <div key={i}>
-                <h3 className="text-[14px] mb-2" style={{ fontWeight: 500, color: 'var(--to-text-1)' }}>
-                  {item.title}
-                </h3>
-                <p className="text-[12.5px] leading-[1.7] mb-3" style={{ color: 'var(--to-text-2)' }}>
-                  {item.body}
-                </p>
-                <div
-                  className="rounded-[6px] overflow-hidden"
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {/* Mobile tabs — shown only on mobile */}
+        <div
+          className="to-docs-mobile-tabs overflow-x-auto shrink-0"
+          style={{
+            borderBottom: '1px solid var(--to-border)',
+            backgroundColor: 'var(--to-bg-panel)',
+            display: 'none', /* shown via CSS */
+          }}
+        >
+          <div className="flex items-center gap-0.5 px-3 py-2" style={{ minWidth: 'max-content' }}>
+            {sections.map(section => {
+              const Icon = section.icon;
+              const isActive = section.id === activeSectionId;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSectionId(section.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-[11px] whitespace-nowrap"
                   style={{
-                    backgroundColor: 'var(--to-log-bg)',
-                    border: '1px solid var(--to-log-border)',
+                    backgroundColor: isActive ? 'var(--to-bg-elevated)' : 'transparent',
+                    color: isActive ? 'var(--to-text-1)' : 'var(--to-text-4)',
+                    border: isActive ? '1px solid var(--to-border)' : '1px solid transparent',
                   }}
                 >
+                  <Icon size={12} />
+                  {section.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="to-docs-content max-w-[720px] mx-auto px-8 py-8">
+            <div className="flex items-center gap-2 mb-1">
+              {(() => { const Icon = activeSection.icon; return <Icon size={16} style={{ color: 'var(--to-text-3)' }} />; })()}
+              <h1 className="text-[22px] leading-[1.3]" style={{ fontWeight: 500, color: 'var(--to-text-1)', letterSpacing: '-0.02em' }}>
+                {activeSection.title}
+              </h1>
+            </div>
+
+            <div className="space-y-8 mt-6">
+              {activeSection.content.map((item, i) => (
+                <div key={i}>
+                  <h3 className="text-[14px] mb-2" style={{ fontWeight: 500, color: 'var(--to-text-1)' }}>
+                    {item.title}
+                  </h3>
+                  <p className="text-[12.5px] leading-[1.7] mb-3" style={{ color: 'var(--to-text-2)' }}>
+                    {item.body}
+                  </p>
                   <div
-                    className="flex items-center gap-2 px-3 py-1.5"
-                    style={{ borderBottom: '1px solid var(--to-log-border)' }}
-                  >
-                    <Terminal size={10} style={{ color: 'var(--to-text-4)' }} />
-                    <span className="text-[9px] uppercase tracking-[0.06em]" style={{ color: 'var(--to-text-4)' }}>
-                      code
-                    </span>
-                  </div>
-                  <pre
-                    className="px-4 py-3 overflow-x-auto text-[11px] leading-[1.65]"
+                    className="rounded-[6px] overflow-hidden"
                     style={{
-                      fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                      color: 'var(--to-text-2)',
+                      backgroundColor: 'var(--to-log-bg)',
+                      border: '1px solid var(--to-log-border)',
                     }}
                   >
-                    {item.code}
-                  </pre>
+                    <div
+                      className="flex items-center gap-2 px-3 py-1.5"
+                      style={{ borderBottom: '1px solid var(--to-log-border)' }}
+                    >
+                      <Terminal size={10} style={{ color: 'var(--to-text-4)' }} />
+                      <span className="text-[9px] uppercase tracking-[0.06em]" style={{ color: 'var(--to-text-4)' }}>
+                        code
+                      </span>
+                    </div>
+                    <pre
+                      className="px-4 py-3 overflow-x-auto text-[11px] leading-[1.65]"
+                      style={{
+                        fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                        color: 'var(--to-text-2)',
+                      }}
+                    >
+                      {item.code}
+                    </pre>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* Navigation between sections */}
-          <div className="mt-10 pt-6 flex items-center justify-between" style={{ borderTop: '1px solid var(--to-border-subtle)' }}>
-            {(() => {
-              const idx = sections.findIndex(s => s.id === activeSectionId);
-              const prev = idx > 0 ? sections[idx - 1] : null;
-              const next = idx < sections.length - 1 ? sections[idx + 1] : null;
-              return (
-                <>
-                  {prev ? (
-                    <button
-                      onClick={() => setActiveSectionId(prev.id)}
-                      className="text-[12px] flex items-center gap-1.5 transition-colors duration-100"
-                      style={{ color: 'var(--to-text-3)' }}
-                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-1)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-3)'; }}
-                    >
-                      <ChevronRight size={12} style={{ transform: 'rotate(180deg)' }} />
-                      {prev.title}
-                    </button>
-                  ) : <span />}
-                  {next ? (
-                    <button
-                      onClick={() => setActiveSectionId(next.id)}
-                      className="text-[12px] flex items-center gap-1.5 transition-colors duration-100"
-                      style={{ color: 'var(--to-text-3)' }}
-                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-1)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-3)'; }}
-                    >
-                      {next.title}
-                      <ChevronRight size={12} />
-                    </button>
-                  ) : <span />}
-                </>
-              );
-            })()}
+            {/* Navigation between sections */}
+            <div className="mt-10 pt-6 flex items-center justify-between" style={{ borderTop: '1px solid var(--to-border-subtle)' }}>
+              {(() => {
+                const idx = sections.findIndex(s => s.id === activeSectionId);
+                const prev = idx > 0 ? sections[idx - 1] : null;
+                const next = idx < sections.length - 1 ? sections[idx + 1] : null;
+                return (
+                  <>
+                    {prev ? (
+                      <button
+                        onClick={() => setActiveSectionId(prev.id)}
+                        className="text-[12px] flex items-center gap-1.5 transition-colors duration-100"
+                        style={{ color: 'var(--to-text-3)' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-1)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-3)'; }}
+                      >
+                        <ChevronRight size={12} style={{ transform: 'rotate(180deg)' }} />
+                        {prev.title}
+                      </button>
+                    ) : <span />}
+                    {next ? (
+                      <button
+                        onClick={() => setActiveSectionId(next.id)}
+                        className="text-[12px] flex items-center gap-1.5 transition-colors duration-100"
+                        style={{ color: 'var(--to-text-3)' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-1)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-3)'; }}
+                      >
+                        {next.title}
+                        <ChevronRight size={12} />
+                      </button>
+                    ) : <span />}
+                  </>
+                );
+              })()}
+            </div>
           </div>
         </div>
       </div>
     </div>
   );
 }
+

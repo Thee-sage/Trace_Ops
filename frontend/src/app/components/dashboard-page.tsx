@@ -4,15 +4,20 @@ import { Timeline } from './timeline';
 import { DetailPanel } from './detail-panel';
 import { fetchEvents, fetchIssues } from './api';
 import type { TimelineEvent, Issue } from './types';
-import { AlertTriangle, List } from 'lucide-react';
+import { AlertTriangle, List, Clock, ChevronDown } from 'lucide-react';
 
 interface DashboardPageProps {
   timeFilter: string;
   searchQuery: string;
   selectedService: string;
+  onTimeFilterChange: (f: string) => void;
+  onServiceChange: (s: string) => void;
+  services: string[];
 }
 
-export function DashboardPage({ timeFilter, searchQuery, selectedService }: DashboardPageProps) {
+const mobileFilters = ['1h', '6h', '24h', '7d', 'All'];
+
+export function DashboardPage({ timeFilter, searchQuery, selectedService, onTimeFilterChange, onServiceChange, services }: DashboardPageProps) {
   const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [events, setEvents] = useState<TimelineEvent[]>([]);
@@ -145,9 +150,43 @@ export function DashboardPage({ timeFilter, searchQuery, selectedService }: Dash
             )}
           </button>
         </div>
-        <span className="text-[11px]" style={{ color: 'var(--to-text-4)' }}>
-          {selectedService === 'All services' ? 'All' : selectedService}
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Mobile time filter */}
+          <div
+            className="flex items-center rounded-[4px] p-0.5"
+            style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
+          >
+            {mobileFilters.map(f => {
+              const val = f.toLowerCase();
+              return (
+                <button
+                  key={f}
+                  onClick={() => onTimeFilterChange(val)}
+                  className="px-2 py-1 text-[10px] rounded-[3px] transition-all duration-100"
+                  style={{
+                    color: timeFilter === val ? 'var(--to-text-1)' : 'var(--to-text-4)',
+                    backgroundColor: timeFilter === val ? 'var(--to-bg-active)' : 'transparent',
+                  }}
+                >
+                  {f}
+                </button>
+              );
+            })}
+          </div>
+          {/* Mobile service selector */}
+          <select
+            value={selectedService}
+            onChange={e => onServiceChange(e.target.value)}
+            className="text-[10px] py-1 px-1.5 rounded-[4px] outline-none"
+            style={{
+              backgroundColor: 'var(--to-bg-elevated)',
+              border: '1px solid var(--to-border)',
+              color: 'var(--to-text-3)',
+            }}
+          >
+            {services.map(s => <option key={s} value={s}>{s === 'All services' ? 'All' : s}</option>)}
+          </select>
+        </div>
       </div>
 
       <IssuesRail

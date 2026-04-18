@@ -78,14 +78,31 @@
     display: flex !important;
   }
 
-  /* Auth page: already responsive, just small tweaks */
-  .to-auth-page {
-    padding: 0 16px;
+  /* ── Docs page mobile ── */
+  .to-docs-sidebar {
+    display: none !important;
+  }
+  .to-docs-mobile-tabs {
+    display: block !important;
+  }
+  .to-docs-content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-top: 20px !important;
+  }
+  .to-docs-content h1 {
+    font-size: 18px !important;
+  }
+  .to-docs-content pre {
+    font-size: 10px !important;
   }
 }
 
 @media (min-width: 769px) {
   .to-mobile-toolbar {
+    display: none !important;
+  }
+  .to-docs-mobile-tabs {
     display: none !important;
   }
 }
@@ -94,7 +111,8 @@
 @media (pointer: coarse) {
   .to-issues-rail,
   .to-timeline,
-  .to-detail-panel {
+  .to-detail-panel,
+  .to-docs-mobile-tabs {
     -webkit-overflow-scrolling: touch;
   }
 }

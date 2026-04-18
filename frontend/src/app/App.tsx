@@ -12,7 +12,7 @@ function AppShell() {
   const { theme, toggle: toggleTheme } = useTheme();
   const { user, isAuthenticated, isGuest, isLoading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('24h');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState('All services');
   const [services, setServices] = useState<string[]>([]);
@@ -77,6 +77,9 @@ function AppShell() {
           selectedService={selectedService}
           timeFilter={timeFilter}
           searchQuery={searchQuery}
+          onTimeFilterChange={setTimeFilter}
+          onServiceChange={setSelectedService}
+          services={services}
         />
       )}
       {page === 'docs' && <DocsPage />}
