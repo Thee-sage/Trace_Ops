@@ -62,6 +62,16 @@ async function startServer(): Promise<void> {
     configValidation.errors.forEach((error) => logger.warn(`Config validation: ${error}`));
   }
 
+  if (!config.apiKey) {
+    logger.warn(
+      '⚠️  TRACEOPS_API_KEY is not set — running in OPEN mode. ' +
+      'Any client can ingest events without authentication. ' +
+      'Set TRACEOPS_API_KEY in your .env to enable API-key protection.'
+    );
+  } else {
+    logger.info('API key authentication is enabled for event ingestion.');
+  }
+
   await seedDemoData();
 
   const server = app.listen(config.port, () => {

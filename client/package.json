@@ -1,18 +1,33 @@
 {
-  "name": "@traceops/sdk",
+  "name": "traceops-sdk",
   "version": "0.1.0",
-  "description": "TraceOps SDK - Automatic observability for Node.js applications",
+  "description": "Incident timeline & root-cause engine SDK for Node.js/Express applications",
   "type": "module",
-  "main": "traceops.ts",
-  "types": "traceops.ts",
+  "main": "dist/traceops.js",
+  "types": "dist/traceops.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/traceops.js",
+      "require": "./dist/traceops.cjs",
+      "types": "./dist/traceops.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "traceops.ts"
+  ],
   "scripts": {
     "build": "tsc",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "observability",
     "monitoring",
     "incident",
+    "tracing",
+    "root-cause",
+    "devops",
     "traceops"
   ],
   "author": "",
@@ -22,6 +37,15 @@
   },
   "peerDependencies": {
     "express": "^4.18.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"

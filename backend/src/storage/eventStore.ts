@@ -14,6 +14,7 @@ class EventStore {
       serviceName: dto.serviceName,
       message: dto.message || '',
       metadata: dto.metadata,
+      userId: dto.userId,
     };
 
     const eventDoc = new EventModel({
@@ -23,6 +24,7 @@ class EventStore {
       serviceName: event.serviceName,
       message: event.message,
       metadata: event.metadata,
+      userId: event.userId,
     });
 
     await eventDoc.save();
@@ -41,6 +43,7 @@ class EventStore {
         serviceName: dto.serviceName,
         message: dto.message || '',
         metadata: dto.metadata,
+        userId: dto.userId,
       };
 
       events.push(event);
@@ -53,6 +56,7 @@ class EventStore {
       serviceName: event.serviceName,
       message: event.message,
       metadata: event.metadata,
+      userId: event.userId,
     }));
 
     await EventModel.insertMany(eventDocs);
@@ -82,8 +86,13 @@ class EventStore {
     eventType?: EventType;
     startTime?: number;
     endTime?: number;
+    userId?: string;
   }): Promise<Event[]> {
     const query: any = {};
+
+    if (options?.userId) {
+      query.userId = options.userId;
+    }
 
     if (options?.serviceName) {
       query.serviceName = options.serviceName;
@@ -131,8 +140,9 @@ class EventStore {
     return await EventModel.countDocuments({}).exec();
   }
 
-  async listServices(): Promise<string[]> {
-    const serviceNames = await EventModel.distinct('serviceName').exec();
+  async listServices(userId?: string): Promise<string[]> {
+    const filter: any = userId ? { userId } : {};
+    const serviceNames = await EventModel.distinct('serviceName', filter).exec();
     return serviceNames.sort();
   }
 }

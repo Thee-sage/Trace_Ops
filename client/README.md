@@ -1,69 +1,140 @@
 # TraceOps SDK
 
-One-line integration for automatic event capture in Node.js applications.
+Automatic incident capture for Node.js / Express applications.  
+Plug in two lines — TraceOps handles the rest.
 
-## Philosophy
+---
 
-The SDK is designed for zero-friction integration. Call `TraceOps.init()` once, and errors, deployments, and configuration changes are captured automatically. No manual logging, no instrumentation code, no boilerplate.
+## Quick Start
 
-## One-Line Integration
+```bash
+# Copy traceops.ts into your project (or install once published to npm)
+cp path/to/traceops-sdk/traceops.ts ./lib/traceops.ts
+```
 
-```typescript
-import TraceOps from '@traceops/sdk';
+```ts
+import TraceOps from './lib/traceops';
 
 TraceOps.init({
-  endpoint: 'http://localhost:3000',
-  serviceName: 'my-service'
+  endpoint: 'https://trace-ops.onrender.com', // your TraceOps backend
+  serviceName: 'payments-api',                 // unique name for this service
+  apiKey: process.env.TRACEOPS_API_KEY,        // leave undefined for open backends
+});
+
+// For Express: attach after all your routes
+TraceOps.express(app);
+```
+
+That's it. On startup TraceOps automatically:
+
+- Emits a **DEPLOY** event (captures version, platform, Node version)
+- Detects `.env` hash changes and emits a **CONFIG_CHANGE** event
+- Captures any **unhandled errors** and **unhandled promise rejections**
+- Captures **Express route errors** via the middleware attached by `TraceOps.express(app)`
+
+---
+
+## API Reference
+
+### `TraceOps.init(options)`
+
+Must be called once before any other method.
+
+| Option | Type | Required | Description |
+|---|---|---|---|
+| `endpoint` | `string` | ✅ | Base URL of your TraceOps backend |
+| `serviceName` | `string` | ✅ | Unique service identifier (e.g. `'auth-service'`) |
+| `apiKey` | `string` | ❌ | API key for authenticated backends |
+
+---
+
+### `TraceOps.express(app)`
+
+Attaches an Express error-capture middleware. Call **after** defining all your routes.
+
+```ts
+app.use('/api', myRouter);
+// ... all routes ...
+TraceOps.express(app); // ← last
+```
+
+---
+
+### `TraceOps.captureError(error, metadata?)`
+
+Manually capture an error. Use this in `catch` blocks for errors that are handled gracefully.
+
+```ts
+try {
+  await processPayment(orderId);
+} catch (err) {
+  await TraceOps.captureError(err, {
+    orderId,
+    userId: req.user.id,
+    route: req.path,
+  });
+  res.status(500).json({ error: 'Payment failed' });
+}
+```
+
+Common useful metadata fields:
+
+| Key | Description |
+|---|---|
+| `route` | HTTP route path (e.g. `/api/payments`) |
+| `userId` | ID of the affected user |
+| `method` | HTTP method |
+
+---
+
+### `TraceOps.configChange(message?, metadata?)`
+
+Manually signal a runtime configuration change.
+
+```ts
+await updateFeatureFlag('dark-mode', true);
+TraceOps.configChange('Feature flag updated: dark-mode=true', {
+  flag: 'dark-mode',
+  value: true,
 });
 ```
 
-That's it. Errors are now captured automatically.
+---
 
-## Automatic Capture
+## Environment Variables
 
-The SDK hooks into Node.js process events and Express middleware to capture:
+Set these in the **monitored service's** environment:
 
-**Runtime failures**: Uncaught exceptions and unhandled promise rejections are captured with full stack traces and process metadata.
+| Variable | Description |
+|---|---|
+| `TRACEOPS_API_KEY` | API key matching `TRACEOPS_API_KEY` on the backend |
 
-**Express errors**: Any error thrown in Express routes is captured with request context (method, path, status code, user agent, IP).
+---
 
-**Deployments**: On process start, a DEPLOY event is emitted with process metadata (PID, Node version, platform, architecture). If `package.json` exists, version is included.
+## What Gets Captured Automatically
 
-**Configuration changes**: On process start, the SDK reads `.env` file (if present), normalizes it (sorts lines, removes comments), hashes it, and compares with previous hash. If different, a CONFIG_CHANGE event is emitted.
+| Event | When |
+|---|---|
+| `DEPLOY` | Every process start |
+| `CONFIG_CHANGE` | When `.env` file content changes between restarts |
+| `ERROR` | Uncaught exceptions / unhandled rejections |
+| `ERROR` (Express) | Any `next(err)` in Express routes |
 
-## Why Manual Logging Is Avoided
+---
 
-The SDK intentionally avoids manual logging APIs like `traceops.error()` or `traceops.deploy()`. The goal is to capture events automatically without requiring developers to instrument their code. This reduces integration friction and ensures nothing is missed.
+## Self-Hosting
 
-If you need to capture custom events, use the backend API directly. The SDK focuses on automatic capture of common patterns.
-
-## Express Integration
-
-For Express applications, call `TraceOps.express(app)` after all routes are defined. This attaches an error handler middleware that captures route errors. The middleware must be registered last so it catches errors from all routes.
-
-```typescript
-import express from 'express';
-import TraceOps from '@traceops/sdk';
-
-TraceOps.init({ endpoint: '...', serviceName: '...' });
-
-const app = express();
-app.use(express.json());
-app.use(yourRoutes);
-
-TraceOps.express(app); // Must be last
+```env
+# TraceOps backend .env
+TRACEOPS_API_KEY=tr_live_xxxxxxxxxxxx
+CORS_ORIGINS=https://myapp.com,https://dashboard.myapp.com
+MONGODB_URI=mongodb+srv://...
 ```
 
-## Supported Environments
+---
 
-The SDK targets Node.js 16+ and Express 4+. It uses standard Node.js APIs (`process.on`, `fs.readFileSync`, `crypto.createHash`) and has no external dependencies beyond `express` types.
+## Troubleshooting
 
-For non-Express applications, runtime error capture still works. Only Express route error capture requires the `express()` call.
-
-## What the SDK Does Not Do
-
-The SDK does not provide manual event APIs, does not buffer events locally, does not retry failed sends, does not batch events, and does not support custom transports. It sends events synchronously (fire-and-forget) and fails silently if the backend is unavailable. Observability must never crash the application.
-
-## Configuration Hash Storage
-
-The SDK stores configuration hashes in `.traceops-config-hash` in the application directory (or temp directory if `process.cwd()` fails). This file persists across restarts to enable CONFIG_CHANGE detection. The file is created automatically and requires no manual management.
+- **Events not appearing?** Check `endpoint` URL and `serviceName` (case-sensitive)
+- **Getting 401?** Set `TRACEOPS_API_KEY` on the backend and pass the same as `apiKey` in `init()`
+- **CORS errors?** Add your frontend origin to `CORS_ORIGINS` in the backend `.env`

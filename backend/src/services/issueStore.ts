@@ -180,6 +180,7 @@ class IssueStore {
       serviceName: event.serviceName,
       fingerprint,
       title: event.message || 'Unknown error',
+      userId: event.userId,
       firstSeen: event.timestamp,
       lastSeen: event.timestamp,
       count: 1,
@@ -268,18 +269,46 @@ class IssueStore {
     );
     issue.priorityScore = priority.score;
     issue.priorityReason = priority.reason;
+
+    // Generate human-readable impact label
+    if (metrics.uniqueUsers && metrics.uniqueUsers > 0) {
+      issue.impactLabel = metrics.uniqueUsers >= 1000
+        ? `${(metrics.uniqueUsers / 1000).toFixed(1)}k users affected`
+        : `${metrics.uniqueUsers} users affected`;
+    } else {
+      issue.impactLabel = issue.count >= 1000
+        ? `${(issue.count / 1000).toFixed(1)}k occurrences`
+        : `${issue.count} occurrence${issue.count !== 1 ? 's' : ''}`;
+    }
+
+    // Generate summary
+    const parts: string[] = [];
+    parts.push(`"${issue.title}" detected on ${issue.serviceName}.`);
+    if (issue.count > 1) {
+      parts.push(`Occurred ${issue.count} times since first seen.`);
+    }
+    if (issue.regressionCount > 0) {
+      parts.push(`Regressed ${issue.regressionCount} time${issue.regressionCount > 1 ? 's' : ''} after being resolved.`);
+    }
+    if (metrics.uniqueRoutes > 1) {
+      parts.push(`Affects ${metrics.uniqueRoutes} routes.`);
+    }
+    if (issue.errorRate > 0) {
+      parts.push(`Current rate: ${issue.errorRate.toFixed(1)}/min.`);
+    }
+    issue.summary = parts.join(' ');
   }
 
   async getOpenIssues(serviceName: string): Promise<Issue[]> {
     return await issueStoreDb.getOpenIssues(serviceName);
   }
 
-  async getTopIssuesByPriority(serviceName: string, limit: number = 3): Promise<Issue[]> {
-    return await issueStoreDb.getTopIssuesByPriority(serviceName, limit);
+  async getTopIssuesByPriority(serviceName: string, limit: number = 3, userId?: string): Promise<Issue[]> {
+    return await issueStoreDb.getTopIssuesByPriority(serviceName, limit, userId);
   }
 
-  async listIssues(serviceName: string): Promise<Issue[]> {
-    return await issueStoreDb.listIssues(serviceName);
+  async listIssues(serviceName: string, userId?: string): Promise<Issue[]> {
+    return await issueStoreDb.listIssues(serviceName, userId);
   }
 
   async findById(id: string): Promise<Issue | undefined> {

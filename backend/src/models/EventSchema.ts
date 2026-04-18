@@ -13,6 +13,7 @@ const EventSchema = new Schema<EventDocument>(
     serviceName: { type: String, required: true, index: true },
     message: { type: String, required: true, default: '' },
     metadata: { type: Schema.Types.Mixed },
+    userId: { type: String, index: true },
   },
   {
     timestamps: false,

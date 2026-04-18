@@ -71,6 +71,7 @@ router.get('/', async (req: Request, res: Response) => {
       eventType: eventType as EventType | undefined,
       startTime: startTime ? parseInt(startTime as string, 10) : undefined,
       endTime: endTime ? parseInt(endTime as string, 10) : undefined,
+      userId: req.userId,
     };
 
     const events = await storage.findAll(options);
@@ -91,7 +92,7 @@ router.get('/timeline/:serviceName', async (req: Request, res: Response) => {
   try {
     const { serviceName } = req.params;
 
-    const events = await storage.findAll({ serviceName });
+    const events = await storage.findAll({ serviceName, userId: req.userId });
     const timelineEvents: TimelineEvent[] = correlationService.analyzeEvents(events);
     timelineEvents.sort((a, b) => a.timestamp - b.timestamp);
 
@@ -132,6 +133,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const dto: CreateEventDto = req.body;
+    dto.userId = req.userId;
 
     if (!dto.eventType || !dto.serviceName) {
       return res.status(400).json({
@@ -150,6 +152,11 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     const event = await storage.create(dto);
+
+    // Tag event with authenticated user
+    if (req.userId && !event.userId) {
+      event.userId = req.userId;
+    }
 
     if (event.eventType === EventType.ERROR) {
       try {
@@ -196,6 +203,9 @@ router.post('/', async (req: Request, res: Response) => {
 router.post('/batch', async (req: Request, res: Response) => {
   try {
     const dtos: CreateEventDto[] = req.body.events || [];
+
+    // Tag all events with the authenticated user
+    dtos.forEach(dto => { dto.userId = req.userId; });
 
     if (!Array.isArray(dtos) || dtos.length === 0) {
       return res.status(400).json({

@@ -6,7 +6,10 @@ export interface Config {
   port: number;
   nodeEnv: 'development' | 'production' | 'test';
   corsOrigin: string;
+  corsOrigins: string[];
   mongodbUri: string;
+  apiKey?: string;
+  jwtSecret: string;
   awsRegion?: string;
   awsCloudWatchLogGroup?: string;
   logLevel?: string;
@@ -20,11 +23,31 @@ function normalizeCorsOrigin(origin: string | undefined): string {
   return origin.replace(/\/+$/, '');
 }
 
+// Parse CORS_ORIGINS env var (comma-separated list) or fall back to defaults
+function parseCorsOrigins(originsEnv: string | undefined, singleOrigin: string): string[] {
+  const defaults = [
+    'http://localhost:5173',
+    'https://traceops.vercel.app',
+  ];
+
+  if (!originsEnv) return defaults;
+
+  const parsed = originsEnv
+    .split(',')
+    .map(o => o.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  return parsed.length > 0 ? parsed : defaults;
+}
+
 export const config: Config = {
   port: parseInt(process.env.PORT || '3000', 10),
   nodeEnv: (process.env.NODE_ENV as Config['nodeEnv']) || 'development',
   corsOrigin: normalizeCorsOrigin(process.env.CORS_ORIGIN),
+  corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS, normalizeCorsOrigin(process.env.CORS_ORIGIN)),
   mongodbUri: process.env.MONGODB_URI || '',
+  apiKey: process.env.TRACEOPS_API_KEY || undefined,
+  jwtSecret: process.env.JWT_SECRET || 'traceops-dev-secret-change-in-production',
   awsRegion: process.env.AWS_REGION,
   awsCloudWatchLogGroup: process.env.AWS_CLOUDWATCH_LOG_GROUP,
   logLevel: process.env.LOG_LEVEL || 'INFO',

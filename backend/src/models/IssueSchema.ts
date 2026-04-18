@@ -11,6 +11,7 @@ const IssueSchema = new Schema<IssueDocument>(
     serviceName: { type: String, required: true, index: true },
     fingerprint: { type: String, required: true, index: true },
     title: { type: String, required: true },
+    userId: { type: String, index: true },
     firstSeen: { type: Number, required: true },
     lastSeen: { type: Number, required: true },
     count: { type: Number, required: true, default: 0 },
@@ -26,6 +27,8 @@ const IssueSchema = new Schema<IssueDocument>(
     errorRate: { type: Number, required: true, default: 0 },
     priorityScore: { type: Number, required: true, default: 0, index: true },
     priorityReason: { type: String },
+    summary: { type: String },
+    impactLabel: { type: String },
   },
   {
     timestamps: false,

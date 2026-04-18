@@ -5,8 +5,25 @@ import * as path from 'path';
 import * as os from 'os';
 
 export interface TraceOpsInitOptions {
+  /**
+   * Base URL of your TraceOps backend.
+   * @example 'https://trace-ops.onrender.com'
+   * @example 'http://localhost:3000'
+   */
   endpoint: string;
+
+  /**
+   * Unique identifier for the service being monitored.
+   * Use a consistent, slug-style name (e.g. 'payments-api', 'auth-service').
+   */
   serviceName: string;
+
+  /**
+   * Optional API key for authenticated TraceOps backends.
+   * Set TRACEOPS_API_KEY on the backend and pass the same value here.
+   * Sent as the `x-api-key` request header on every event.
+   */
+  apiKey?: string;
 }
 
 interface EventPayload {
@@ -20,6 +37,7 @@ interface EventPayload {
 class TraceOpsSDK {
   private endpoint!: string;
   private serviceName!: string;
+  private apiKey: string | undefined;
   private initialized = false;
 
   private configHashPath: string;
@@ -37,11 +55,16 @@ class TraceOpsSDK {
     this.configHashPath = path.join(baseDir, '.traceops-config-hash');
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Public API
+  // ─────────────────────────────────────────────────────────────────────────
+
   init(options: TraceOpsInitOptions): void {
     if (this.initialized) return;
 
     this.endpoint = options.endpoint.replace(/\/$/, '');
     this.serviceName = options.serviceName;
+    this.apiKey = options.apiKey;
 
     this.loadPreviousConfigHash();
     this.setupErrorHandlers();
@@ -52,6 +75,10 @@ class TraceOpsSDK {
     this.initialized = true;
   }
 
+  /**
+   * Attach TraceOps error-capture middleware to an Express app.
+   * Call this AFTER defining all your routes so it catches unhandled errors.
+   */
   express(app: Express): void {
     if (!this.initialized) {
       throw new Error('TraceOps.init() must be called before TraceOps.express()');
@@ -70,6 +97,60 @@ class TraceOpsSDK {
     });
   }
 
+  /**
+   * Manually capture an error event.
+   * Use this for errors caught in try/catch blocks or async code.
+   *
+   * @example
+   * try {
+   *   await processPayment();
+   * } catch (err) {
+   *   TraceOps.captureError(err, { orderId: '123', userId: 'u_456' });
+   *   throw err;
+   * }
+   */
+  async captureError(
+    error: Error | unknown,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    const err = error instanceof Error ? error : new Error(String(error));
+    await this.sendEvent({
+      eventType: 'ERROR',
+      serviceName: this.serviceName,
+      message: err.message || 'Unknown error',
+      metadata: {
+        name: err.name,
+        stack: err.stack,
+        ...metadata,
+      },
+    });
+  }
+
+  /**
+   * Manually signal a configuration change event.
+   * Call this after changing environment variables, feature flags, or
+   * any runtime configuration that could affect service behaviour.
+   *
+   * @example
+   * await updateFeatureFlag('dark-mode', true);
+   * TraceOps.configChange('Feature flag updated: dark-mode=true', { flag: 'dark-mode', value: true });
+   */
+  async configChange(
+    message?: string,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
+    await this.sendEvent({
+      eventType: 'CONFIG_CHANGE',
+      serviceName: this.serviceName,
+      message: message || 'Configuration changed',
+      metadata,
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Private helpers
+  // ─────────────────────────────────────────────────────────────────────────
+
   private setupErrorHandlers(): void {
     process.on('uncaughtException', error => {
       void this.captureError(error, { type: 'uncaughtException' });
@@ -78,24 +159,7 @@ class TraceOpsSDK {
     process.on('unhandledRejection', reason => {
       const error =
         reason instanceof Error ? reason : new Error(String(reason));
-
       void this.captureError(error, { type: 'unhandledRejection' });
-    });
-  }
-
-  private async captureError(
-    error: Error,
-    metadata: Record<string, unknown>
-  ): Promise<void> {
-    await this.sendEvent({
-      eventType: 'ERROR',
-      serviceName: this.serviceName,
-      message: error.message || 'Unknown error',
-      metadata: {
-        name: error.name,
-        stack: error.stack,
-        ...metadata,
-      },
     });
   }
 
@@ -113,6 +177,7 @@ class TraceOpsSDK {
       if (fs.existsSync(pkgPath)) {
         const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
         if (pkg.version) metadata.version = pkg.version;
+        if (pkg.name) metadata.servicePkg = pkg.name;
       }
     } catch {
       // ignore
@@ -170,19 +235,26 @@ class TraceOpsSDK {
     fs.writeFileSync(this.configHashPath, hash, 'utf-8');
   }
 
-  // ✅ ONLY ONE sendEvent METHOD — THIS IS THE FIX
   private async sendEvent(payload: EventPayload): Promise<void> {
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (this.apiKey) {
+        headers['x-api-key'] = this.apiKey;
+      }
+
       await fetch(`${this.endpoint}/events`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           ...payload,
-          timestamp: Date.now(),
+          timestamp: payload.timestamp ?? Date.now(),
         }),
       });
     } catch {
-      // observability must NEVER crash the app
+      // Observability must NEVER crash the application.
     }
   }
 }
@@ -192,4 +264,8 @@ const sdk = new TraceOpsSDK();
 export default {
   init: (opts: TraceOpsInitOptions) => sdk.init(opts),
   express: (app: Express) => sdk.express(app),
+  captureError: (error: Error | unknown, metadata?: Record<string, unknown>) =>
+    sdk.captureError(error, metadata),
+  configChange: (message?: string, metadata?: Record<string, unknown>) =>
+    sdk.configChange(message, metadata),
 };

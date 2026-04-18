@@ -11,6 +11,7 @@ export interface Event {
   serviceName: string;
   message: string;
   metadata?: Record<string, unknown>;
+  userId?: string;
 }
 
 export interface CreateEventDto {
@@ -19,6 +20,7 @@ export interface CreateEventDto {
   message?: string;
   metadata?: Record<string, unknown>;
   timestamp?: number;
+  userId?: string;
 }
 
 export interface TimelineEvent extends Event {

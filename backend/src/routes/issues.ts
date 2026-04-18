@@ -14,7 +14,7 @@ router.get('/', async (req: Request, res: Response) => {
       });
     }
 
-    const issues = await issueStore.listIssues(serviceName);
+    const issues = await issueStore.listIssues(serviceName, req.userId);
 
     const enrichedIssues = await Promise.all(issues.map(async (issue) => {
       const result: any = {
@@ -32,6 +32,8 @@ router.get('/', async (req: Request, res: Response) => {
         errorRate: issue.errorRate,
         priorityScore: issue.priorityScore,
         priorityReason: issue.priorityReason,
+        summary: issue.summary,
+        impactLabel: issue.impactLabel,
       };
 
       if (issue.resolvedAt) {
@@ -84,7 +86,7 @@ router.get('/needs-attention', async (req: Request, res: Response) => {
     }
 
     const limitNum = limit ? parseInt(limit as string, 10) : 3;
-    const topIssues = await issueStore.getTopIssuesByPriority(serviceName, limitNum);
+    const topIssues = await issueStore.getTopIssuesByPriority(serviceName, limitNum, req.userId);
 
     const enrichedIssues = await Promise.all(topIssues.map(async (issue) => {
       const result: any = {

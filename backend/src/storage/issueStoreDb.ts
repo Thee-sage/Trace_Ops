@@ -43,6 +43,9 @@ class IssueStoreDb {
       errorRate: issue.errorRate,
       priorityScore: issue.priorityScore,
       priorityReason: issue.priorityReason,
+      summary: issue.summary,
+      impactLabel: issue.impactLabel,
+      userId: issue.userId,
     });
 
     await issueDoc.save();
@@ -69,6 +72,9 @@ class IssueStoreDb {
         errorRate: issue.errorRate,
         priorityScore: issue.priorityScore,
         priorityReason: issue.priorityReason,
+        summary: issue.summary,
+        impactLabel: issue.impactLabel,
+        userId: issue.userId,
       },
       { upsert: false }
     ).exec();
@@ -95,13 +101,18 @@ class IssueStoreDb {
         errorRate: issue.errorRate,
         priorityScore: issue.priorityScore,
         priorityReason: issue.priorityReason,
+        summary: issue.summary,
+        impactLabel: issue.impactLabel,
+        userId: issue.userId,
       },
       { upsert: true }
     ).exec();
   }
 
-  async listIssues(serviceName: string): Promise<Issue[]> {
-    const docs = await IssueModel.find({ serviceName })
+  async listIssues(serviceName: string, userId?: string): Promise<Issue[]> {
+    const filter: any = { serviceName };
+    if (userId) filter.userId = userId;
+    const docs = await IssueModel.find(filter)
       .sort({ lastSeen: -1 })
       .lean()
       .exec();
@@ -117,8 +128,10 @@ class IssueStoreDb {
     return docs.map((doc) => this.docToIssue(doc));
   }
 
-  async getTopIssuesByPriority(serviceName: string, limit: number = 3): Promise<Issue[]> {
-    const docs = await IssueModel.find({ serviceName, status: 'open' })
+  async getTopIssuesByPriority(serviceName: string, limit: number = 3, userId?: string): Promise<Issue[]> {
+    const filter: any = { serviceName, status: 'open' };
+    if (userId) filter.userId = userId;
+    const docs = await IssueModel.find(filter)
       .sort({ priorityScore: -1 })
       .limit(limit)
       .lean()
@@ -152,6 +165,9 @@ class IssueStoreDb {
       errorRate: doc.errorRate,
       priorityScore: doc.priorityScore,
       priorityReason: doc.priorityReason || undefined,
+      summary: doc.summary || undefined,
+      impactLabel: doc.impactLabel || undefined,
+      userId: doc.userId || undefined,
     };
   }
 }

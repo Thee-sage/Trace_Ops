@@ -6,38 +6,57 @@ import healthRouter from './routes/health';
 import eventsRouter from './routes/events';
 import issuesRouter from './routes/issues';
 import blockchainRouter from './routes/blockchain';
+import authRouter from './routes/auth';
 import { storage } from './services/storage';
+import { requireAuth, resolveApiKey } from './middleware/auth';
 
 export function createApp(): Express {
   const app = express();
 
   app.use(cors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        'http://localhost:5173',
-        'https://traceops.vercel.app'
-      ];
-      
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (server-to-server SDK calls, curl, etc.)
+      if (!origin || config.corsOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        callback(new Error(`CORS: origin '${origin}' not allowed. Add it to CORS_ORIGINS env var.`));
       }
     },
     credentials: false,
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
   }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
+  // ── Public routes (no auth) ──
+  app.use('/auth', authRouter);
   app.use('/health', healthRouter);
+
+  // ── SDK ingestion: API key → userId ──
+  // POST/DELETE on /events require a valid per-user API key
+  app.use(['/events', '/events/batch'], (req: Request, res: Response, next: express.NextFunction) => {
+    if (req.method === 'POST' || req.method === 'DELETE') {
+      return resolveApiKey(req, res, next);
+    }
+    return next();
+  });
+
+  // ── Dashboard reads: JWT → userId ──
+  // GET on /events, /issues, /services require a valid JWT
+  app.use(['/events', '/issues', '/services'], (req: Request, res: Response, next: express.NextFunction) => {
+    if (req.method === 'GET') {
+      return requireAuth(req, res, next);
+    }
+    return next();
+  });
+
   app.use('/events', eventsRouter);
   app.use('/issues', issuesRouter);
   app.use('/blockchain', blockchainRouter);
 
-  app.get('/services', async (_req: Request, res: Response) => {
+  app.get('/services', async (req: Request, res: Response) => {
     try {
-      const serviceNames = await storage.listServices();
+      const serviceNames = await storage.listServices(req.userId);
       return res.json(serviceNames);
     } catch (error) {
       logger.error('Failed to fetch services', error);
@@ -51,7 +70,7 @@ export function createApp(): Express {
   app.get('/', (_req: Request, res: Response) => {
     res.json({
       name: 'TraceOps Backend',
-      version: '0.1.0',
+      version: '0.2.0',
       status: 'running',
     });
   });
@@ -77,4 +96,3 @@ export function createApp(): Express {
 
   return app;
 }
-

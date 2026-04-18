@@ -2,6 +2,34 @@
 
 Incident timeline and root-cause engine for cloud applications.
 
+## Quick Start
+
+Add TraceOps to any Node.js / Express backend in under 2 minutes:
+
+```ts
+import TraceOps from './lib/traceops'; // copy client/traceops.ts to your project
+
+TraceOps.init({
+  endpoint: 'https://trace-ops.onrender.com',  // or your self-hosted backend
+  serviceName: 'my-service',
+  apiKey: process.env.TRACEOPS_API_KEY,
+});
+
+TraceOps.express(app); // after all routes
+```
+
+See the **[Integration Guide](./INTEGRATION_GUIDE.md)** for full setup instructions, non-Express frameworks, manual capture, and self-hosting.
+
+## SDK Reference
+
+| Method | Description |
+|---|---|
+| `TraceOps.init(options)` | Initialize — call once at app startup |
+| `TraceOps.express(app)` | Attach Express error-capture middleware |
+| `TraceOps.captureError(err, metadata?)` | Manually report an error from a try/catch |
+| `TraceOps.configChange(msg?, metadata?)` | Signal a runtime configuration change |
+
+
 ## What TraceOps Is
 
 TraceOps transforms incident investigation from a 15-minute log-sifting nightmare into a 2-minute timeline review. When production breaks, engineers face scattered logs across multiple services, manual timestamp correlation, and cognitive overload. TraceOps provides a unified chronological timeline that automatically correlates events and highlights likely root causes.
@@ -39,5 +67,20 @@ Each component is independently deployable. The backend stores events in-memory 
 - `client/` - TraceOps SDK for automatic event capture
 - `verify-traceops/` - Test harness validating all system stages
 - `kiro/` - Architectural documentation and design decisions
+
+## Self-Hosting
+
+```env
+# backend/.env
+MONGODB_URI=mongodb+srv://...
+TRACEOPS_API_KEY=tr_live_xxxxxxxxxxxx
+CORS_ORIGINS=https://your-frontend.com
+PORT=3000
+NODE_ENV=production
+```
+
+Deploy the `backend/` folder to Render, Railway, or any Node.js host.
+Deploy the `frontend/` folder to Vercel or Netlify.
+Set `VITE_API_BASE` on the frontend to point to your backend URL.
 
 See each folder's README for detailed architecture and responsibilities.

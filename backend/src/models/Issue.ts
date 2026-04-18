@@ -3,6 +3,7 @@ export interface Issue {
   serviceName: string;
   fingerprint: string;
   title: string;
+  userId?: string;
   firstSeen: number;
   lastSeen: number;
   count: number;
@@ -18,5 +19,7 @@ export interface Issue {
   errorRate: number;
   priorityScore: number;
   priorityReason?: string;
+  summary?: string;
+  impactLabel?: string;
 }
 

@@ -13,7 +13,8 @@ const PORT = process.env.PORT || 4000;
 
 TraceOps.init({
   endpoint: process.env.TRACEOPS_ENDPOINT || 'https://trace-ops.onrender.com',
-  serviceName: 'traceops-verify-app'
+  serviceName: 'traceops-verify-app',
+  apiKey: process.env.TRACEOPS_API_KEY || undefined,
 });
 
 app.use(express.json());
@@ -37,6 +38,26 @@ app.get('/config-test', (req, res) => {
   });
 });
 
+// Manual error capture (demonstrates TraceOps.captureError())
+app.get('/manual-error', async (req, res) => {
+  const fakeError = new Error('Simulated error via TraceOps.captureError()');
+  await TraceOps.captureError(fakeError, {
+    route: '/manual-error',
+    userId: 'test-user-001',
+    simulatedAt: Date.now(),
+  });
+  res.json({ status: 'sent', message: 'Manual error event sent to TraceOps' });
+});
+
+// Manual config change (demonstrates TraceOps.configChange())
+app.get('/config-change', async (req, res) => {
+  await TraceOps.configChange('Manual config change triggered via /config-change endpoint', {
+    source: 'verify-app',
+    triggeredAt: Date.now(),
+  });
+  res.json({ status: 'sent', message: 'Config change event sent to TraceOps' });
+});
+
 TraceOps.express(app);
 
 app.listen(PORT, () => {
@@ -56,11 +77,15 @@ app.listen(PORT, () => {
   console.log(`\nStage 4 - Impact & Signal:`);
   console.log(`  GET http://localhost:${PORT}/load/light - Single error`);
   console.log(`  GET http://localhost:${PORT}/load/heavy - Multiple errors (spike)`);
+  console.log(`\nManual SDK methods:`);
+  console.log(`  GET http://localhost:${PORT}/manual-error   - TraceOps.captureError()`);
+  console.log(`  GET http://localhost:${PORT}/config-change  - TraceOps.configChange()`);
   console.log(`\nTraceOps will capture:`);
   console.log(`  - DEPLOY event (on server start)`);
   console.log(`  - ERROR events (when error routes are called)`);
   console.log(`  - CONFIG_CHANGE event (when TEST_VALUE changes and server restarts)`);
   console.log(`\nTraceOps endpoint: ${process.env.TRACEOPS_ENDPOINT || 'https://trace-ops.onrender.com'}`);
+  console.log(`API key: ${process.env.TRACEOPS_API_KEY ? '✅ set' : '⚠️  not set (open mode)'}`);
   console.log(`\nSee scenarios.md for detailed testing instructions`);
   console.log(`\nPress Ctrl+C to stop\n`);
 });
