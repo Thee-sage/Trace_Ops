@@ -41,7 +41,7 @@ export function AuthPage() {
         if (data.code) {
           setResetCode(data.code);
         }
-        setSuccess('Reset code sent! Check your email or the backend console.');
+        setSuccess('Reset code sent to your email!');
         setMode('reset');
       } else if (mode === 'reset') {
         const res = await fetch(`${API_BASE}/auth/reset-password`, {

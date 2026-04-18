@@ -10,6 +10,8 @@ export interface Config {
   mongodbUri: string;
   apiKey?: string;
   jwtSecret: string;
+  gmailUser?: string;
+  gmailAppPassword?: string;
   awsRegion?: string;
   awsCloudWatchLogGroup?: string;
   logLevel?: string;
@@ -48,6 +50,8 @@ export const config: Config = {
   mongodbUri: process.env.MONGODB_URI || '',
   apiKey: process.env.TRACEOPS_API_KEY || undefined,
   jwtSecret: process.env.JWT_SECRET || 'traceops-dev-secret-change-in-production',
+  gmailUser: process.env.GMAIL_USER,
+  gmailAppPassword: process.env.GMAIL_APP_PASSWORD,
   awsRegion: process.env.AWS_REGION,
   awsCloudWatchLogGroup: process.env.AWS_CLOUDWATCH_LOG_GROUP,
   logLevel: process.env.LOG_LEVEL || 'INFO',
