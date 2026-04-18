@@ -137,4 +137,86 @@ router.get('/me', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+// ── Password Reset ──
+
+// In-memory store: email → { code, expiresAt }
+const resetCodes = new Map<string, { code: string; expiresAt: number }>();
+
+function generateResetCode(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// POST /auth/forgot-password
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      // Don't reveal whether email exists — always return success
+      return res.json({ message: 'If that email exists, a reset code has been generated.' });
+    }
+
+    const code = generateResetCode();
+    resetCodes.set(user.email, { code, expiresAt: Date.now() + 15 * 60 * 1000 }); // 15 min
+
+    // In production: send code via email (SendGrid, Resend, etc.)
+    // For now: log it so the developer can see it
+    console.log(`[PASSWORD RESET] Code for ${user.email}: ${code}`);
+
+    return res.json({
+      message: 'If that email exists, a reset code has been generated.',
+      // Include code in dev mode so you can actually use it
+      ...(config.nodeEnv === 'development' ? { code } : {}),
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to process reset request' });
+  }
+});
+
+// POST /auth/reset-password
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['email', 'code', 'newPassword'],
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const stored = resetCodes.get(normalizedEmail);
+
+    if (!stored || stored.code !== code) {
+      return res.status(400).json({ error: 'Invalid or expired reset code' });
+    }
+
+    if (Date.now() > stored.expiresAt) {
+      resetCodes.delete(normalizedEmail);
+      return res.status(400).json({ error: 'Reset code has expired. Request a new one.' });
+    }
+
+    // Update password
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await UserModel.findOneAndUpdate({ email: normalizedEmail }, { passwordHash });
+
+    // Clean up used code
+    resetCodes.delete(normalizedEmail);
+
+    return res.json({ message: 'Password reset successful. You can now log in.' });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to reset password' });
+  }
+});
+
 export default router;
+
