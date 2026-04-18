@@ -4,6 +4,7 @@ import { Timeline } from './timeline';
 import { DetailPanel } from './detail-panel';
 import { fetchEvents, fetchIssues } from './api';
 import type { TimelineEvent, Issue } from './types';
+import { AlertTriangle, List } from 'lucide-react';
 
 interface DashboardPageProps {
   timeFilter: string;
@@ -17,6 +18,7 @@ export function DashboardPage({ timeFilter, searchQuery, selectedService }: Dash
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mobilePanel, setMobilePanel] = useState<'timeline' | 'issues'>('timeline');
 
   // Fetch data when service or time filter changes
   useEffect(() => {
@@ -60,6 +62,8 @@ export function DashboardPage({ timeFilter, searchQuery, selectedService }: Dash
   const handleSelectIssue = (id: string | null) => {
     setSelectedIssueId(id);
     setSelectedEventId(null);
+    // On mobile, switch to timeline when selecting an issue
+    setMobilePanel('timeline');
   };
 
   const handleSelectEvent = (id: string | null) => {
@@ -80,6 +84,7 @@ export function DashboardPage({ timeFilter, searchQuery, selectedService }: Dash
   };
 
   const showDetailPanel = selectedEvent || selectedIssue;
+  const activeIssueCount = issues.filter(i => i.status === 'open' || i.status === 'investigating').length;
 
   if (loading) {
     return (
@@ -96,11 +101,60 @@ export function DashboardPage({ timeFilter, searchQuery, selectedService }: Dash
   }
 
   return (
-    <div className="flex flex-1 overflow-hidden">
+    <div className="to-dashboard flex flex-1 overflow-hidden">
+      {/* Mobile toolbar */}
+      <div
+        className="to-mobile-toolbar items-center justify-between px-3 py-2 shrink-0"
+        style={{
+          borderBottom: '1px solid var(--to-border)',
+          backgroundColor: 'var(--to-bg-panel)',
+          display: 'none', /* shown via CSS on mobile */
+        }}
+      >
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setMobilePanel('timeline')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-[12px]"
+            style={{
+              backgroundColor: mobilePanel === 'timeline' ? 'var(--to-bg-elevated)' : 'transparent',
+              color: mobilePanel === 'timeline' ? 'var(--to-text-1)' : 'var(--to-text-4)',
+              border: mobilePanel === 'timeline' ? '1px solid var(--to-border)' : '1px solid transparent',
+            }}
+          >
+            <List size={13} />
+            Timeline
+          </button>
+          <button
+            onClick={() => setMobilePanel('issues')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[5px] text-[12px] relative"
+            style={{
+              backgroundColor: mobilePanel === 'issues' ? 'var(--to-bg-elevated)' : 'transparent',
+              color: mobilePanel === 'issues' ? 'var(--to-text-1)' : 'var(--to-text-4)',
+              border: mobilePanel === 'issues' ? '1px solid var(--to-border)' : '1px solid transparent',
+            }}
+          >
+            <AlertTriangle size={13} />
+            Issues
+            {activeIssueCount > 0 && (
+              <span
+                className="text-[9px] px-1.5 rounded-full"
+                style={{ backgroundColor: 'var(--to-error-subtle)', color: 'var(--to-error)' }}
+              >
+                {activeIssueCount}
+              </span>
+            )}
+          </button>
+        </div>
+        <span className="text-[11px]" style={{ color: 'var(--to-text-4)' }}>
+          {selectedService === 'All services' ? 'All' : selectedService}
+        </span>
+      </div>
+
       <IssuesRail
         issues={issues}
         selectedIssueId={selectedIssueId}
         onSelectIssue={handleSelectIssue}
+        mobileOpen={mobilePanel === 'issues'}
       />
       <Timeline
         events={filteredEvents}
@@ -121,3 +175,4 @@ export function DashboardPage({ timeFilter, searchQuery, selectedService }: Dash
     </div>
   );
 }
+

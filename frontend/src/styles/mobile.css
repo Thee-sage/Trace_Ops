@@ -1,0 +1,100 @@
+/* ── Mobile Responsive Overrides ── */
+
+/* Breakpoint: 768px */
+@media (max-width: 768px) {
+  /* Top bar: compact */
+  .to-topbar {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    height: 48px !important;
+  }
+  .to-topbar-nav-label {
+    display: none !important;
+  }
+  .to-topbar-divider {
+    display: none !important;
+  }
+  .to-topbar-service-filter {
+    display: none !important;
+  }
+  .to-topbar-time-filters {
+    display: none !important;
+  }
+  .to-topbar-search {
+    display: none !important;
+  }
+
+  /* Dashboard: column stacking with mobile toolbar */
+  .to-dashboard {
+    flex-direction: column !important;
+    position: relative;
+  }
+
+  /* Issues rail: hidden by default, full-screen overlay when open */
+  .to-issues-rail {
+    display: none !important;
+  }
+  .to-issues-rail.to-mobile-open {
+    display: flex !important;
+    position: absolute !important;
+    top: 44px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    z-index: 50 !important;
+    border-right: none !important;
+  }
+
+  /* Timeline: full width, reduced margins */
+  .to-timeline {
+    flex: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .to-timeline > div:first-child {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .to-timeline > div:last-child > div {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Detail panel: full-screen overlay on mobile */
+  .to-detail-panel {
+    position: absolute !important;
+    top: 44px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    z-index: 50 !important;
+    border-left: none !important;
+  }
+
+  /* Mobile toolbar: shown on mobile only */
+  .to-mobile-toolbar {
+    display: flex !important;
+  }
+
+  /* Auth page: already responsive, just small tweaks */
+  .to-auth-page {
+    padding: 0 16px;
+  }
+}
+
+@media (min-width: 769px) {
+  .to-mobile-toolbar {
+    display: none !important;
+  }
+}
+
+/* Smooth touch scrolling */
+@media (pointer: coarse) {
+  .to-issues-rail,
+  .to-timeline,
+  .to-detail-panel {
+    -webkit-overflow-scrolling: touch;
+  }
+}

@@ -222,7 +222,7 @@ export function Timeline({ events, allEvents, selectedIssue, selectedEventId, on
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden select-none">
+    <div className="to-timeline flex-1 flex flex-col overflow-hidden select-none">
       {/* Story Header */}
       <div className="px-8 pt-5 pb-4 shrink-0" style={{ borderBottom: '1px solid var(--to-border-subtle)' }}>
         {selectedIssue ? (

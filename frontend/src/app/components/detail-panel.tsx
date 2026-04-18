@@ -51,7 +51,7 @@ export function DetailPanel({ event, issue, allEvents, onClose, onSelectEvent }:
 
   return (
     <aside
-      className="w-[340px] shrink-0 flex flex-col select-none"
+      className="to-detail-panel w-[340px] shrink-0 flex flex-col select-none"
       style={{
         backgroundColor: 'var(--to-bg-panel)',
         borderLeft: '1px solid var(--to-border)',

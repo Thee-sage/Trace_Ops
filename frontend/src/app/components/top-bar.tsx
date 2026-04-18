@@ -63,7 +63,7 @@ export function TopBar({
 
   return (
     <header
-      className="flex items-center justify-between h-[52px] px-5 shrink-0 select-none"
+      className="to-topbar flex items-center justify-between h-[52px] px-5 shrink-0 select-none"
       style={{ borderBottom: '1px solid var(--to-border)' }}
     >
       {/* Left: brand + nav */}
@@ -80,7 +80,7 @@ export function TopBar({
           </span>
         </div>
 
-        <div className="w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
+        <div className="to-topbar-divider w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
 
         {/* Nav buttons */}
         <nav className="flex items-center gap-0.5">
@@ -110,7 +110,7 @@ export function TopBar({
                 }}
               >
                 <Icon size={13} />
-                {item.label}
+                <span className="to-topbar-nav-label">{item.label}</span>
               </button>
             );
           })}
@@ -119,8 +119,8 @@ export function TopBar({
         {/* Dashboard-specific: service filter */}
         {page === 'dashboard' && (
           <>
-            <div className="w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
-            <div ref={serviceRef} className="relative">
+            <div className="to-topbar-divider w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
+            <div ref={serviceRef} className="to-topbar-service-filter relative">
               <button
                 onClick={() => setServiceOpen(!serviceOpen)}
                 className="flex items-center gap-1.5 text-[12px] transition-colors duration-100"
@@ -170,7 +170,7 @@ export function TopBar({
         {page === 'dashboard' && (
           <>
             <div
-              className="flex items-center rounded-md p-0.5"
+              className="to-topbar-time-filters flex items-center rounded-md p-0.5"
               style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
             >
               {filters.map(f => {
@@ -191,9 +191,9 @@ export function TopBar({
               })}
             </div>
 
-            <div className="w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
+            <div className="to-topbar-divider w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
 
-            <div className="relative flex items-center">
+            <div className="to-topbar-search relative flex items-center">
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
                 className="p-1.5 rounded-md transition-colors duration-100"

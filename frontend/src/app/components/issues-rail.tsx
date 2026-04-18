@@ -5,9 +5,10 @@ interface IssuesRailProps {
   issues: Issue[];
   selectedIssueId: string | null;
   onSelectIssue: (id: string | null) => void;
+  mobileOpen?: boolean;
 }
 
-export function IssuesRail({ issues, selectedIssueId, onSelectIssue }: IssuesRailProps) {
+export function IssuesRail({ issues, selectedIssueId, onSelectIssue, mobileOpen }: IssuesRailProps) {
   const activeIssues = issues.filter(i => i.status === 'open' || i.status === 'investigating');
   const resolvedIssues = issues.filter(i => i.status === 'resolved');
   const hasSelection = selectedIssueId !== null;
@@ -62,7 +63,7 @@ export function IssuesRail({ issues, selectedIssueId, onSelectIssue }: IssuesRai
   if (issues.length === 0) {
     return (
       <aside
-        className="w-[252px] shrink-0 flex flex-col select-none"
+        className={`to-issues-rail${mobileOpen ? ' to-mobile-open' : ''} w-[252px] shrink-0 flex flex-col select-none`}
         style={{
           backgroundColor: 'var(--to-bg-panel)',
           borderRight: '1px solid var(--to-border)',
@@ -88,7 +89,7 @@ export function IssuesRail({ issues, selectedIssueId, onSelectIssue }: IssuesRai
 
   return (
     <aside
-      className="w-[252px] shrink-0 flex flex-col select-none"
+      className={`to-issues-rail${mobileOpen ? ' to-mobile-open' : ''} w-[252px] shrink-0 flex flex-col select-none`}
       style={{
         backgroundColor: 'var(--to-bg-panel)',
         borderRight: '1px solid var(--to-border)',
