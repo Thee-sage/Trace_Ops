@@ -21,7 +21,7 @@ interface TopBarProps {
 
 const filters = ['1h', '6h', '24h', '7d', 'All'];
 
-const navItems: { id: Page; label: string; icon: typeof Activity }[] = [
+const allNavItems: { id: Page; label: string; icon: typeof Activity }[] = [
   { id: 'dashboard', label: 'Incidents', icon: Activity },
   { id: 'docs', label: 'Docs', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: Settings },
@@ -45,6 +45,7 @@ export function TopBar({
   const [serviceOpen, setServiceOpen] = useState(false);
   const serviceRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const navItems = userName ? allNavItems : allNavItems.filter(i => i.id !== 'settings');
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {

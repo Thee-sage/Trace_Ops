@@ -10,7 +10,7 @@ import { fetchServices } from './components/api';
 
 function AppShell() {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isGuest, isLoading } = useAuth();
   const [page, setPage] = useState<Page>('dashboard');
   const [timeFilter, setTimeFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -18,9 +18,9 @@ function AppShell() {
   const [services, setServices] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated && !isGuest) return;
     fetchServices().then(setServices).catch(console.error);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isGuest]);
 
   // Loading spinner
   if (isLoading) {
@@ -43,8 +43,8 @@ function AppShell() {
     );
   }
 
-  // Not logged in → auth page
-  if (!isAuthenticated) {
+  // Not logged in and not guest → auth page
+  if (!isAuthenticated && !isGuest) {
     return <AuthPage />;
   }
 

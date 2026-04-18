@@ -13,10 +13,12 @@ interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
+  enterGuestMode: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -34,6 +36,7 @@ export function getToken(): string | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(() => localStorage.getItem('traceops-token'));
+  const [isGuest, setIsGuest] = useState(() => localStorage.getItem('traceops-guest') === 'true');
   const [isLoading, setIsLoading] = useState(true);
 
   // Validate token on mount
@@ -97,13 +100,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem('traceops-token');
+    localStorage.removeItem('traceops-guest');
     setToken(null);
     setUser(null);
+    setIsGuest(false);
+  }, []);
+
+  const enterGuestMode = useCallback(() => {
+    localStorage.setItem('traceops-guest', 'true');
+    setIsGuest(true);
   }, []);
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated: !!user, isLoading, login, register, logout }}
+      value={{ user, token, isAuthenticated: !!user, isGuest, isLoading, login, register, logout, enterGuestMode }}
     >
       {children}
     </AuthContext.Provider>

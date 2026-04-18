@@ -36,6 +36,26 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 }
 
 /**
+ * Optional JWT auth for guest-accessible routes.
+ * If JWT present → attaches userId (user sees own data).
+ * If no JWT → passes through (guest sees all data).
+ */
+export function optionalAuth(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    try {
+      const payload = jwt.verify(token, config.jwtSecret) as { userId: string; email: string };
+      req.userId = payload.userId;
+      req.userEmail = payload.email;
+    } catch {
+      // Invalid token in guest mode — just ignore it
+    }
+  }
+  next();
+}
+
+/**
  * API key middleware for SDK ingestion (POST routes).
  * Maps x-api-key → userId and attaches to request.
  */

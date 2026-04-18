@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? 'https://trace-ops.onrender.co
 type Mode = 'login' | 'register' | 'forgot' | 'reset';
 
 export function AuthPage() {
-  const { login, register } = useAuth();
+  const { login, register, enterGuestMode } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -282,6 +282,23 @@ export function AuthPage() {
                 Don't have an account? Sign up
               </button>
             </>
+          )}
+          {(mode === 'login' || mode === 'register') && (
+            <div className="pt-3" style={{ borderTop: '1px solid var(--to-border)' }}>
+              <button
+                onClick={enterGuestMode}
+                className="w-full py-2 rounded-[6px] text-[12px] transition-all duration-150"
+                style={{
+                  color: 'var(--to-text-3)',
+                  backgroundColor: 'var(--to-bg-elevated)',
+                  border: '1px solid var(--to-border)',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--to-text-4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--to-border)'; }}
+              >
+                Explore without signing in
+              </button>
+            </div>
           )}
           {mode === 'register' && (
             <button

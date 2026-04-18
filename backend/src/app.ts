@@ -8,7 +8,7 @@ import issuesRouter from './routes/issues';
 import blockchainRouter from './routes/blockchain';
 import authRouter from './routes/auth';
 import { storage } from './services/storage';
-import { requireAuth, resolveApiKey } from './middleware/auth';
+import { requireAuth, resolveApiKey, optionalAuth } from './middleware/auth';
 
 export function createApp(): Express {
   const app = express();
@@ -41,11 +41,11 @@ export function createApp(): Express {
     return next();
   });
 
-  // ── Dashboard reads: JWT → userId ──
-  // GET on /events, /issues, /services require a valid JWT
+  // ── Dashboard reads: optional JWT ──
+  // GET on /events, /issues, /services: if JWT present → user's data, else → all data
   app.use(['/events', '/issues', '/services'], (req: Request, res: Response, next: express.NextFunction) => {
     if (req.method === 'GET') {
-      return requireAuth(req, res, next);
+      return optionalAuth(req, res, next);
     }
     return next();
   });
