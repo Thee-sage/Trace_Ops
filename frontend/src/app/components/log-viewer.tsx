@@ -1,6 +1,6 @@
 import { Copy, Check } from 'lucide-react';
 import { useState } from 'react';
-import { LogEntry } from './data';
+import { LogEntry } from './types';
 
 interface LogViewerProps {
   log: LogEntry;
