@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useTheme } from './components/use-theme';
-import { TopBar, type Page } from './components/top-bar';
+import { TopBar } from './components/top-bar';
 import { DashboardPage } from './components/dashboard-page';
 import { DocsPage } from './components/docs-page';
 import { SettingsPanel } from './components/settings-panel';
 import { AuthProvider, useAuth } from './components/auth-context';
 import { AuthPage } from './components/auth-page';
 import { fetchServices } from './components/api';
+import { useDeviceClass } from './components/use-mobile';
+
+export type Page = 'dashboard' | 'docs' | 'settings';
 
 function AppShell() {
   const { theme, toggle: toggleTheme } = useTheme();
   const { user, isAuthenticated, isGuest, isLoading } = useAuth();
+  const device = useDeviceClass();
   const [page, setPage] = useState<Page>('dashboard');
   const [timeFilter, setTimeFilter] = useState('24h');
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,7 +54,7 @@ function AppShell() {
 
   return (
     <div
-      className="h-screen flex flex-col overflow-hidden"
+      className="h-screen flex flex-col overflow-hidden relative"
       style={{
         backgroundColor: 'var(--to-bg-primary)',
         color: 'var(--to-text-1)',
@@ -70,6 +74,7 @@ function AppShell() {
         onServiceChange={setSelectedService}
         services={services}
         userName={user?.name}
+        device={device}
       />
 
       {page === 'dashboard' && (
@@ -80,9 +85,10 @@ function AppShell() {
           onTimeFilterChange={setTimeFilter}
           onServiceChange={setSelectedService}
           services={services}
+          device={device}
         />
       )}
-      {page === 'docs' && <DocsPage />}
+      {page === 'docs' && <DocsPage device={device} />}
       {page === 'settings' && <SettingsPanel />}
     </div>
   );

@@ -1,19 +1,18 @@
 import { X, ArrowRight } from 'lucide-react';
-import type { TimelineEvent, Issue } from './types';
+import { TimelineEvent, Issue, events as allEvents } from './data';
 import { typeColor, statusColor } from './tokens';
 import { LogViewer } from './log-viewer';
 
 interface DetailPanelProps {
   event: TimelineEvent | null;
   issue: Issue | null;
-  allEvents: TimelineEvent[];
   onClose: () => void;
   onSelectEvent: (id: string) => void;
   isMobile?: boolean;
   isWide?: boolean;
 }
 
-function generateExplanation(event: TimelineEvent, issue: Issue | null, allEvents: TimelineEvent[]): string {
+function generateExplanation(event: TimelineEvent, issue: Issue | null): string {
   if (event.suggestedCause) return event.suggestedCause;
   if (!issue) {
     if (event.type === 'error') return `An error was detected in ${event.service}. ${event.description}`;
@@ -29,7 +28,7 @@ function generateExplanation(event: TimelineEvent, issue: Issue | null, allEvent
   return event.description;
 }
 
-export function DetailPanel({ event, issue, allEvents, onClose, onSelectEvent, isMobile, isWide }: DetailPanelProps) {
+export function DetailPanel({ event, issue, onClose, onSelectEvent, isMobile, isWide }: DetailPanelProps) {
   if (!event && !issue) return null;
 
   const formatTime = (ts: string) =>
@@ -48,7 +47,7 @@ export function DetailPanel({ event, issue, allEvents, onClose, onSelectEvent, i
     : [];
 
   const rootCauseEvent = issue?.rootCauseEventId ? allEvents.find(e => e.id === issue.rootCauseEventId) : null;
-  const explanation = event ? generateExplanation(event, issue, allEvents) : null;
+  const explanation = event ? generateExplanation(event, issue) : null;
   const isRootCause = event && issue?.rootCauseEventId === event.id;
 
   return (

@@ -1,5 +1,6 @@
-import { Search, ChevronDown, Sun, Moon, Activity, BookOpen, Bell, Settings, Menu, X } from 'lucide-react';
+import { Search, ChevronDown, Sun, Moon, Activity, BookOpen, Bell, Menu, X } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { services } from './data';
 import type { Theme } from './use-theme';
 import type { Page } from '../App';
 import type { DeviceClass } from './use-mobile';
@@ -15,17 +16,14 @@ interface TopBarProps {
   onServiceChange: (s: string) => void;
   theme: Theme;
   onToggleTheme: () => void;
-  services: string[];
-  userName?: string;
   device: DeviceClass;
 }
 
-const filters = ['1h', '6h', '24h', '7d', 'All'];
+const filters = ['1h', '6h', '24h', '7d'];
 
-const allNavItems: { id: Page; label: string; icon: typeof Activity }[] = [
+const navItems: { id: Page; label: string; icon: typeof Activity }[] = [
   { id: 'dashboard', label: 'Incidents', icon: Activity },
   { id: 'docs', label: 'Docs', icon: BookOpen },
-  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 export function TopBar({
@@ -39,8 +37,6 @@ export function TopBar({
   onServiceChange,
   theme,
   onToggleTheme,
-  services,
-  userName,
   device,
 }: TopBarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -48,7 +44,6 @@ export function TopBar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const serviceRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
-  const navItems = userName ? allNavItems : allNavItems.filter(i => i.id !== 'settings');
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -66,7 +61,6 @@ export function TopBar({
 
   const isMobile = device === 'phone' || device === 'tablet';
 
-  // ─── Mobile / Tablet layout ───
   if (isMobile) {
     return (
       <>
@@ -165,22 +159,19 @@ export function TopBar({
                   className="flex items-center rounded-md p-0.5"
                   style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
                 >
-                  {filters.map(f => {
-                    const value = f.toLowerCase();
-                    return (
-                      <button
-                        key={f}
-                        onClick={() => onTimeFilterChange(value)}
-                        className="flex-1 px-2.5 py-1.5 text-[11px] rounded-[4px] transition-all duration-100"
-                        style={{
-                          color: timeFilter === value ? 'var(--to-text-1)' : 'var(--to-text-4)',
-                          backgroundColor: timeFilter === value ? 'var(--to-bg-active)' : 'transparent',
-                        }}
-                      >
-                        {f}
-                      </button>
-                    );
-                  })}
+                  {filters.map(f => (
+                    <button
+                      key={f}
+                      onClick={() => onTimeFilterChange(f)}
+                      className="flex-1 px-2.5 py-1.5 text-[11px] rounded-[4px] transition-all duration-100"
+                      style={{
+                        color: timeFilter === f ? 'var(--to-text-1)' : 'var(--to-text-4)',
+                        backgroundColor: timeFilter === f ? 'var(--to-bg-active)' : 'transparent',
+                      }}
+                    >
+                      {f}
+                    </button>
+                  ))}
                 </div>
 
                 {/* Mobile service filter */}
@@ -208,7 +199,6 @@ export function TopBar({
     );
   }
 
-  // ─── Desktop layout ───
   return (
     <header
       className="flex items-center justify-between h-[52px] px-5 shrink-0 select-none"
@@ -321,22 +311,19 @@ export function TopBar({
               className="flex items-center rounded-md p-0.5"
               style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
             >
-              {filters.map(f => {
-                const value = f.toLowerCase();
-                return (
-                  <button
-                    key={f}
-                    onClick={() => onTimeFilterChange(value)}
-                    className="px-2.5 py-1 text-[11px] rounded-[4px] transition-all duration-100"
-                    style={{
-                      color: timeFilter === value ? 'var(--to-text-1)' : 'var(--to-text-4)',
-                      backgroundColor: timeFilter === value ? 'var(--to-bg-active)' : 'transparent',
-                    }}
-                  >
-                    {f}
-                  </button>
-                );
-              })}
+              {filters.map(f => (
+                <button
+                  key={f}
+                  onClick={() => onTimeFilterChange(f)}
+                  className="px-2.5 py-1 text-[11px] rounded-[4px] transition-all duration-100"
+                  style={{
+                    color: timeFilter === f ? 'var(--to-text-1)' : 'var(--to-text-4)',
+                    backgroundColor: timeFilter === f ? 'var(--to-bg-active)' : 'transparent',
+                  }}
+                >
+                  {f}
+                </button>
+              ))}
             </div>
 
             <div className="w-px h-4" style={{ backgroundColor: 'var(--to-border)' }} />
@@ -398,34 +385,13 @@ export function TopBar({
           {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
         </button>
 
-        {/* Avatar or Sign in */}
-        {userName ? (
-          <div
-            className="w-[26px] h-[26px] rounded-full flex items-center justify-center ml-1 cursor-pointer"
-            style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
-            onClick={() => onPageChange('settings')}
-            title={userName}
-          >
-            <span className="text-[10px]" style={{ color: 'var(--to-text-3)', fontWeight: 500 }}>
-              {userName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
-            </span>
-          </div>
-        ) : (
-          <button
-            onClick={() => {
-              localStorage.removeItem('traceops-guest');
-              window.location.reload();
-            }}
-            className="px-3 py-1.5 rounded-[6px] text-[12px] ml-1 transition-all duration-150"
-            style={{
-              backgroundColor: 'var(--to-brand-bg)',
-              color: 'var(--to-brand-text)',
-              fontWeight: 500,
-            }}
-          >
-            Sign in
-          </button>
-        )}
+        {/* Avatar */}
+        <div
+          className="w-[26px] h-[26px] rounded-full flex items-center justify-center ml-1 cursor-pointer"
+          style={{ backgroundColor: 'var(--to-bg-elevated)', border: '1px solid var(--to-border)' }}
+        >
+          <span className="text-[10px]" style={{ color: 'var(--to-text-3)', fontWeight: 500 }}>JK</span>
+        </div>
       </div>
     </header>
   );

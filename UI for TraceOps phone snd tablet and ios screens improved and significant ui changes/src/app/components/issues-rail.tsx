@@ -1,4 +1,4 @@
-import type { Issue } from './types';
+import { Issue } from './data';
 import { statusColor } from './tokens';
 
 interface IssuesRailProps {
@@ -55,7 +55,7 @@ export function IssuesRail({ issues, selectedIssueId, onSelectIssue, isMobile, i
                 className="text-[10px] tabular-nums transition-colors duration-100"
                 style={{ color: isActive ? 'var(--to-text-3)' : 'var(--to-text-4)' }}
               >
-                {issue.impactLabel || `${issue.impact} affected`}
+                {issue.impact.toLocaleString()} affected
               </span>
             </div>
           </div>
@@ -63,34 +63,6 @@ export function IssuesRail({ issues, selectedIssueId, onSelectIssue, isMobile, i
       </button>
     );
   };
-
-  if (issues.length === 0) {
-    return (
-      <aside
-        className={`${isMobile ? 'flex-1' : 'shrink-0'} flex flex-col select-none overflow-hidden`}
-        style={{
-          width: isMobile ? undefined : width,
-          backgroundColor: isMobile ? 'transparent' : 'var(--to-bg-panel)',
-          borderRight: isMobile ? 'none' : '1px solid var(--to-border)',
-        }}
-      >
-        <div
-          className="px-4 h-10 flex items-center shrink-0"
-          style={{ borderBottom: '1px solid var(--to-border)' }}
-        >
-          <span className="text-[11px] uppercase tracking-[0.08em]" style={{ color: 'var(--to-text-3)' }}>
-            Issues
-          </span>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center px-6">
-            <div className="w-2 h-2 rounded-full mx-auto mb-2" style={{ backgroundColor: 'var(--to-success)' }} />
-            <div className="text-[11px]" style={{ color: 'var(--to-text-4)' }}>No issues detected</div>
-          </div>
-        </div>
-      </aside>
-    );
-  }
 
   return (
     <aside

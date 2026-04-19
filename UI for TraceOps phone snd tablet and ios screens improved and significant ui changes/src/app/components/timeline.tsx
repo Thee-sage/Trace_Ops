@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import type { TimelineEvent, Issue } from './types';
+import { TimelineEvent, Issue, events as allEvents } from './data';
 import { typeColor, statusColor } from './tokens';
 
 interface TimelineProps {
   events: TimelineEvent[];
-  allEvents: TimelineEvent[];
   selectedIssue: Issue | null;
   selectedEventId: string | null;
   onSelectEvent: (id: string | null) => void;
@@ -13,7 +12,7 @@ interface TimelineProps {
 
 type Phase = 'before' | 'incident' | 'after';
 
-function classifyPhase(event: TimelineEvent, issue: Issue, allEvents: TimelineEvent[]): Phase {
+function classifyPhase(event: TimelineEvent, issue: Issue): Phase {
   const rootCause = issue.rootCauseEventId
     ? allEvents.find(e => e.id === issue.rootCauseEventId)
     : null;
@@ -41,7 +40,7 @@ const phaseLabels: Record<Phase, string> = {
   after: 'What was done',
 };
 
-export function Timeline({ events, allEvents, selectedIssue, selectedEventId, onSelectEvent, isMobile }: TimelineProps) {
+export function Timeline({ events, selectedIssue, selectedEventId, onSelectEvent, isMobile }: TimelineProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const eventRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -68,10 +67,10 @@ export function Timeline({ events, allEvents, selectedIssue, selectedEventId, on
     if (!selectedIssue) return new Map<string, Phase>();
     const map = new Map<string, Phase>();
     events.forEach(e => {
-      if (highlightedIds.includes(e.id)) map.set(e.id, classifyPhase(e, selectedIssue, allEvents));
+      if (highlightedIds.includes(e.id)) map.set(e.id, classifyPhase(e, selectedIssue));
     });
     return map;
-  }, [selectedIssue, events, highlightedIds, allEvents]);
+  }, [selectedIssue, events, highlightedIds]);
 
   const rootCauseEvent = rootCauseId ? allEvents.find(e => e.id === rootCauseId) : null;
 
@@ -80,8 +79,8 @@ export function Timeline({ events, allEvents, selectedIssue, selectedEventId, on
       <div className="flex-1 flex flex-col items-center justify-center gap-3">
         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--to-success)' }} />
         <div className="text-center">
-          <div className="text-[13px] mb-1" style={{ color: 'var(--to-text-3)' }}>No events found</div>
-          <div className="text-[11px]" style={{ color: 'var(--to-text-5)' }}>Try a wider time range or different service</div>
+          <div className="text-[13px] mb-1" style={{ color: 'var(--to-text-3)' }}>No incidents detected</div>
+          <div className="text-[11px]" style={{ color: 'var(--to-text-5)' }}>System operating normally</div>
         </div>
       </div>
     );
