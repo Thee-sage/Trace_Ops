@@ -134,11 +134,11 @@ export function DetailPanel({ event, issue, allEvents, onClose, onSelectEvent, i
                 </span>
                 <div className="space-y-1.5">
                   {Object.entries(event.metadata).map(([k, v]) => (
-                    <div key={k} className="flex items-baseline justify-between gap-4">
+                    <div key={k} className={`flex gap-4 ${String(v).length > 40 ? 'flex-col' : 'items-baseline justify-between'}`}>
                       <span className="text-[10px] shrink-0" style={{ color: 'var(--to-text-4)' }}>
                         {k.replace(/_/g, ' ')}
                       </span>
-                      <span className="text-[10px] font-mono text-right truncate" style={{ color: 'var(--to-text-2)' }}>
+                      <span className="text-[10px] font-mono break-words" style={{ color: 'var(--to-text-2)', wordBreak: 'break-word', textAlign: String(v).length > 40 ? 'left' : 'right' }}>
                         {v}
                       </span>
                     </div>
