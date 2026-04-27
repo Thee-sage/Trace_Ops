@@ -50,3 +50,4 @@ github-recovery-codes*
 *.key
 *.p12
 *.pfx
+.extras/
