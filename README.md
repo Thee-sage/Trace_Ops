@@ -193,7 +193,6 @@ traceops/
 ├── backend/     Event ingestion, issue grouping, lifecycle tracking
 ├── frontend/    Timeline dashboard (Next.js)
 ├── client/      SDK source + npm package (traceops-sdk)
-└── extras/      Supplementary tooling
 ```
 
 ## License
