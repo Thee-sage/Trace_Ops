@@ -1,20 +1,20 @@
 {
   "name": "traceops-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Incident timeline & root-cause engine SDK for Node.js/Express applications",
-  "type": "module",
   "main": "dist/traceops.js",
   "types": "dist/traceops.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/traceops.js",
-      "require": "./dist/traceops.cjs",
+      "require": "./dist/traceops.js",
+      "default": "./dist/traceops.js",
       "types": "./dist/traceops.d.ts"
     }
   },
   "files": [
     "dist",
-    "traceops.ts"
+    "traceops.ts",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc",
@@ -30,11 +30,13 @@
     "devops",
     "traceops"
   ],
-  "author": "",
+  "author": "Thee-sage",
   "license": "MIT",
-  "dependencies": {
-    "@types/express": "^4.17.21"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Thee-sage/Trace_Ops"
   },
+  "homepage": "https://github.com/Thee-sage/Trace_Ops#readme",
   "peerDependencies": {
     "express": "^4.18.0"
   },
@@ -44,6 +46,7 @@
     }
   },
   "devDependencies": {
+    "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   },
