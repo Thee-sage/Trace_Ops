@@ -1,269 +1,169 @@
 # TraceOps SDK
 
-Automatic incident capture for Node.js / Express applications.  
-Plug in two lines — TraceOps handles the rest.
+Lightweight observability SDK for Node.js applications. Captures errors, deployments, and configuration changes with built-in data safety.
 
----
-
-## Quick Start
-
-```bash
-# Copy traceops.ts into your project (or install once published to npm)
-cp path/to/traceops-sdk/traceops.ts ./lib/traceops.ts
+```
+npm install traceops-sdk
 ```
 
+## Installation
+
 ```ts
-import TraceOps from './lib/traceops';
+import TraceOps from 'traceops-sdk';
 
 TraceOps.init({
-  endpoint: 'https://trace-ops.onrender.com', // your TraceOps backend
-  serviceName: 'payments-api',                 // unique name for this service
-  apiKey: process.env.TRACEOPS_API_KEY,        // leave undefined for open backends
+  endpoint: 'https://trace-ops.onrender.com',
+  serviceName: 'payments-api',
+  apiKey: process.env.TRACEOPS_API_KEY,
 });
 
-// For Express: attach after all your routes
+// Express middleware — attach after all routes
 TraceOps.express(app);
 ```
 
-That's it. On startup TraceOps automatically:
+Once initialized, the SDK automatically captures:
 
-- Emits a **DEPLOY** event (captures version, platform, Node version)
-- Detects `.env` hash changes and emits a **CONFIG_CHANGE** event
-- Captures any **unhandled errors** and **unhandled promise rejections**
-- Captures **Express route errors** via the middleware attached by `TraceOps.express(app)`
+- **Deployments** — process start with version, platform, and runtime metadata
+- **Configuration changes** — `.env` file hash drift between restarts
+- **Errors** — uncaught exceptions, unhandled rejections, and Express route errors
 
----
-
-## API Reference
+## API
 
 ### `TraceOps.init(options)`
 
-Must be called once before any other method.
+Initialize the SDK. Must be called once before any other method.
 
-| Option | Type | Required | Default | Description |
-|---|---|---|---|---|
-| `endpoint` | `string` | ✅ | — | Base URL of your TraceOps backend |
-| `serviceName` | `string` | ✅ | — | Unique service identifier (e.g. `'auth-service'`) |
-| `apiKey` | `string` | ❌ | — | API key for authenticated backends |
-| `safeMode` | `boolean` | ❌ | `true` | Master toggle for all safety protections |
-| `maxStackLength` | `number` | ❌ | `2000` | Max stack trace characters |
-| `maxMetadataDepth` | `number` | ❌ | `3` | Max object nesting depth |
-| `maxMetadataSize` | `number` | ❌ | `10240` | Max metadata bytes (10KB) |
-| `maxEventsPerMinute` | `number` | ❌ | `30` | Rate limit ceiling per 60s window |
-| `dedupeWindowMs` | `number` | ❌ | `60000` | Dedup window for identical errors (ms) |
-
----
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `endpoint` | `string` | *required* | TraceOps backend URL |
+| `serviceName` | `string` | *required* | Service identifier (slug format, e.g. `auth-service`) |
+| `apiKey` | `string` | — | API key for authenticated backends |
+| `safeMode` | `boolean` | `true` | Enable automatic data scrubbing and rate limiting |
+| `maxStackLength` | `number` | `2000` | Stack trace character limit |
+| `maxMetadataDepth` | `number` | `3` | Maximum object nesting depth in metadata |
+| `maxMetadataSize` | `number` | `10240` | Maximum serialized metadata size (bytes) |
+| `maxEventsPerMinute` | `number` | `30` | Event rate limit per 60-second window |
+| `dedupeWindowMs` | `number` | `60000` | Deduplication window for identical errors (ms) |
 
 ### `TraceOps.express(app)`
 
-Attaches an Express error-capture middleware. Call **after** defining all your routes.
+Attach error-capture middleware to an Express application. Call after all route definitions.
 
 ```ts
-app.use('/api', myRouter);
-// ... all routes ...
-TraceOps.express(app); // ← last
+app.use('/api', router);
+TraceOps.express(app);
 ```
-
----
 
 ### `TraceOps.captureError(error, metadata?)`
 
-Manually capture an error. Use this in `catch` blocks for errors that are handled gracefully.
-
-Handles all input types safely:
-- **Error objects** → captured normally
-- **Strings / primitives** → wrapped in `new Error()`
-- **`null` / `undefined`** → `"[No error provided]"`
-- **Plain objects** (e.g. `{ code: 500 }`) → serialized as message, attached as metadata
+Manually capture an error with optional context.
 
 ```ts
 try {
   await processPayment(orderId);
 } catch (err) {
-  await TraceOps.captureError(err, {
-    orderId,
-    userId: req.user.id,
-    route: req.path,
-  });
+  await TraceOps.captureError(err, { orderId, userId: req.user.id });
   res.status(500).json({ error: 'Payment failed' });
 }
 ```
 
-Common useful metadata fields:
-
-| Key | Description |
-|---|---|
-| `route` | HTTP route path (e.g. `/api/payments`) |
-| `userId` | ID of the affected user |
-| `method` | HTTP method |
-
----
+Accepts `Error` objects, strings, plain objects, `null`, and `undefined`. Non-Error inputs are normalized automatically.
 
 ### `TraceOps.configChange(message?, metadata?)`
 
-Manually signal a runtime configuration change.
+Record a configuration change event.
 
 ```ts
-await updateFeatureFlag('dark-mode', true);
-TraceOps.configChange('Feature flag updated: dark-mode=true', {
-  flag: 'dark-mode',
-  value: true,
-});
+TraceOps.configChange('Feature flag updated', { flag: 'dark-mode', value: true });
 ```
 
----
+## Data Handling
 
-## Environment Variables
+### Collected data
 
-Set these in the **monitored service's** environment:
-
-| Variable | Description |
+| Data | Purpose |
 |---|---|
-| `TRACEOPS_API_KEY` | API key matching `TRACEOPS_API_KEY` on the backend |
+| Error message and stack trace | Root-cause analysis |
+| OS, Node.js version, PID, architecture | Environment context |
+| `.env` file SHA-256 hash | Configuration drift detection |
+| User-provided metadata | Application-specific context |
 
----
+The SDK does not read or transmit raw environment variables, API keys, tokens, file contents, request bodies, or source code. The `.env` file is hashed locally; only the hash is transmitted.
 
-## What Gets Captured Automatically
+### Safe mode
 
-| Event | When |
+Enabled by default. Provides the following protections:
+
+**Key redaction** — Metadata keys matching sensitive patterns are replaced with `[REDACTED]` before transmission. Patterns include `password`, `token`, `secret`, `apiKey`, `authorization`, `credential`, `session`, `cookie`, `ssn`, and `credit_card`. Matching is case-insensitive and ignores separators. Applied recursively through nested objects and arrays.
+
+**Header scrubbing** — When metadata contains a `headers` object, values for `authorization`, `cookie`, `set-cookie`, `x-api-key`, `proxy-authorization`, and `x-forwarded-for` are redacted.
+
+**Object safety** — Keys referencing framework objects (`req`, `res`, `socket`, `process`, `global`, `window`) are replaced with `[Unsupported Type]`. Non-serializable values are converted to descriptive labels:
+
+| Input type | Output |
 |---|---|
-| `DEPLOY` | Every process start |
-| `CONFIG_CHANGE` | When `.env` file content changes between restarts |
-| `ERROR` | Uncaught exceptions / unhandled rejections |
-| `ERROR` (Express) | Any `next(err)` in Express routes |
-
----
-
-## Data Privacy & Safe Mode
-
-TraceOps is designed with **privacy-by-default**. Safe mode is enabled automatically and provides multiple layers of protection:
-
-### What is collected
-
-| Data | Purpose | Contains secrets? |
-|---|---|---|
-| Error messages | Root-cause analysis | ❌ No |
-| Stack traces | Debugging | ❌ No (truncated to 2000 chars) |
-| OS / Node version / PID | Environment context | ❌ No |
-| `.env` file **SHA-256 hash** | Detect config drift | ❌ Hash only, not contents |
-| Custom metadata you pass | Your context | ⚠️ You control this (auto-scrubbed) |
-
-### What is NOT collected
-
-- ❌ Raw environment variable values
-- ❌ API keys, tokens, or passwords
-- ❌ File contents (only hashes)
-- ❌ Network traffic or request bodies
-- ❌ Source code
-
-### Automatic key redaction
-
-When `safeMode: true` (default), any metadata key matching these patterns is replaced with `[REDACTED]`:
-
-```
-password, passwd, pwd, secret, token, apikey, api_key,
-authorization, auth, credential, credentials, private_key,
-privatekey, access_token, refresh_token, session, sessionid,
-session_id, cookie, ssn, credit_card, creditcard
-```
-
-This works **recursively** on nested objects and arrays.
-
-### HTTP header stripping
-
-If metadata contains a `headers` object, the following headers are automatically redacted:
-
-```
-authorization, cookie, set-cookie, x-api-key,
-proxy-authorization, x-forwarded-for
-```
-
-### Dangerous object detection
-
-If metadata contains keys like `req`, `res`, `socket`, `process`, `global`, or `window`, the value is replaced with `[Unsupported Type: key]`. These framework objects are huge, often circular, and may contain sensitive data.
-
-### Non-serializable value handling
-
-| Type | Replacement |
-|---|---|
-| Functions | `[Function: name]` |
-| Symbols | `[Symbol: description]` |
+| Function | `[Function: name]` |
+| Symbol | `[Symbol: description]` |
 | RegExp | `[RegExp: /pattern/flags]` |
-| Buffer / Uint8Array | `[Buffer: N bytes]` |
-| BigInt | Converted to string |
+| Buffer | `[Buffer: N bytes]` |
+| Circular reference | `[Circular Reference]` |
 | Date | ISO 8601 string |
-| Circular references | `[Circular Reference]` |
 
-### Over-collection limits
+**Size limits** — Enforced to prevent payload bloat:
 
-| Limit | Default | Description |
-|---|---|---|
-| Object depth | 3 levels | Beyond this → `[Object depth limit]` |
-| Metadata size | 10KB | Entries trimmed until under limit |
-| String values | 5KB | Truncated with marker |
-| Array items | 100 | Remainder shown as `... N more items` |
-| Total payload | 50KB | Metadata stripped if exceeded |
-| Stack traces | 2000 chars | Truncated with marker |
+| Constraint | Default |
+|---|---|
+| Object depth | 3 levels |
+| Metadata size | 10 KB |
+| String values | 5 KB |
+| Array items | 100 |
+| Stack traces | 2,000 characters |
+| Total event payload | 50 KB |
 
-### Rate limiting
+Values exceeding limits are truncated with a marker indicating the cutoff point.
 
-Events are capped at **30 per minute** (configurable). When the limit is hit:
-- A `console.warn` is emitted once
-- Excess events are silently dropped
-- Normal operation resumes when the window resets
+**Rate limiting** — Events are capped at 30 per 60-second window. Excess events are dropped silently. A single `console.warn` is emitted when the limit is first reached.
 
-### Error deduplication
-
-If the same error (same type + message) fires multiple times within **60 seconds** (configurable):
-- Only the first event is sent
-- Duplicates are silently suppressed
-- A `_duplicatesSuppressed` count is attached when available
+**Deduplication** — Identical errors (matched by type and message) within a 60-second window are suppressed. Only the first occurrence is transmitted.
 
 ### Disabling safe mode
-
-If you handle data scrubbing yourself:
 
 ```ts
 TraceOps.init({
   endpoint: 'https://trace-ops.onrender.com',
   serviceName: 'my-service',
-  safeMode: false, // disable all automatic protections
+  safeMode: false,
 });
 ```
 
----
+## Configuration Validation
 
-## Misconfiguration Detection
+The SDK validates init options at startup and emits warnings via `console.warn` for common issues: missing or malformed `endpoint`, empty `serviceName`, non-slug characters in service names, and empty-string API keys. Validation never throws — the SDK will not crash your application.
 
-TraceOps validates your init options and warns about common mistakes:
+## Environment Variables
 
-| Issue | Warning |
+| Variable | Description |
 |---|---|
-| Empty `endpoint` | `"endpoint is required but was empty"` |
-| Non-HTTP endpoint | `"doesn't start with http:// or https://"` |
-| Empty `serviceName` | `"serviceName is required but was empty"` |
-| Special chars in `serviceName` | `"contains special characters — use slug-style"` |
-| Empty string `apiKey` | `"apiKey was provided but is an empty string"` |
-
-All warnings go to `console.warn('[TraceOps]', ...)` — **the SDK never crashes your app**.
-
----
+| `TRACEOPS_API_KEY` | Shared key for authenticated backends |
 
 ## Self-Hosting
 
 ```env
-# TraceOps backend .env
 TRACEOPS_API_KEY=tr_live_xxxxxxxxxxxx
 CORS_ORIGINS=https://myapp.com,https://dashboard.myapp.com
 MONGODB_URI=mongodb+srv://...
 ```
 
----
-
 ## Troubleshooting
 
-- **Events not appearing?** Check `endpoint` URL and `serviceName` (case-sensitive)
-- **Getting 401?** Set `TRACEOPS_API_KEY` on the backend and pass the same as `apiKey` in `init()`
-- **CORS errors?** Add your frontend origin to `CORS_ORIGINS` in the backend `.env`
-- **Rate limit warnings?** Increase `maxEventsPerMinute` or investigate why your app is throwing so many errors
-- **`[Metadata truncated]` in events?** Reduce the amount of data you pass as metadata, or increase `maxMetadataSize`
+| Symptom | Resolution |
+|---|---|
+| Events not appearing | Verify `endpoint` URL and `serviceName` (case-sensitive) |
+| 401 responses | Ensure `apiKey` matches `TRACEOPS_API_KEY` on the backend |
+| CORS errors | Add your frontend origin to `CORS_ORIGINS` in the backend configuration |
+| Rate limit warnings | Increase `maxEventsPerMinute` or investigate excessive error volume |
+| Truncated metadata | Reduce metadata payload size or increase `maxMetadataSize` |
+
+## License
+
+MIT

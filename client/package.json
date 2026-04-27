@@ -1,6 +1,6 @@
 {
   "name": "traceops-sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Incident timeline & root-cause engine SDK for Node.js/Express applications",
   "main": "dist/traceops.js",
   "types": "dist/traceops.d.ts",
