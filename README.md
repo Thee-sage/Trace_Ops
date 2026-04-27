@@ -2,7 +2,7 @@
 
 Incident timeline and root-cause engine for Node.js applications. Captures errors, deployments, and configuration changes — then correlates them into an actionable timeline.
 
-**Live dashboard:** [trace-ops-frontend.vercel.app](https://trace-ops-frontend.vercel.app)
+**Live dashboard:** [traceops.vercel.app](https://traceops.vercel.app)
 
 ## Overview
 
@@ -37,7 +37,7 @@ TraceOps.express(app);
 
 ### 3. View events
 
-Open the [TraceOps dashboard](https://trace-ops-frontend.vercel.app) to see your events on the timeline.
+Open the [TraceOps dashboard](https://traceops.vercel.app) to see your events on the timeline.
 
 ## SDK Reference
 
