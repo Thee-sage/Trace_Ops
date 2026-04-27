@@ -57,10 +57,36 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction): v
 
 /**
  * API key middleware for SDK ingestion (POST routes).
- * Maps x-api-key → userId and attaches to request.
+ *
+ * - OPEN MODE  (TRACEOPS_API_KEY not set in backend .env):
+ *     Accepts all events without auth. Useful for local dev / self-hosted setups.
+ *     If x-api-key header is present, still tries to resolve userId from it.
+ *
+ * - AUTH MODE  (TRACEOPS_API_KEY is set in backend .env):
+ *     Requires x-api-key header that maps to a registered user in the DB.
  */
 export async function resolveApiKey(req: Request, res: Response, next: NextFunction): Promise<void> {
   const apiKey = req.headers['x-api-key'] as string | undefined;
+
+  // ── Open mode: no global API key configured on the backend ──────────────
+  if (!config.apiKey) {
+    // Optionally resolve userId if a key was provided anyway
+    if (apiKey) {
+      try {
+        const user = await UserModel.findOne({ apiKey }).lean();
+        if (user) {
+          req.userId = user._id;
+          req.userEmail = user.email;
+        }
+      } catch {
+        // best-effort — don't block the request
+      }
+    }
+    next();
+    return;
+  }
+
+  // ── Auth mode: per-user API key required ────────────────────────────────
   if (!apiKey) {
     res.status(401).json({ error: 'API key required', message: 'Provide x-api-key header' });
     return;

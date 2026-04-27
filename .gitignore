@@ -43,3 +43,10 @@ temp/
 # AWS
 .aws/
 
+# Security — never commit these
+github-recovery-codes*
+*recovery-codes*
+*.pem
+*.key
+*.p12
+*.pfx
