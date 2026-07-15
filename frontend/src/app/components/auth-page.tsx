@@ -37,10 +37,6 @@ export function AuthPage() {
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Failed');
-        // In dev mode, code is returned directly
-        if (data.code) {
-          setResetCode(data.code);
-        }
         setSuccess('Reset code sent to your email!');
         setMode('reset');
       } else if (mode === 'reset') {

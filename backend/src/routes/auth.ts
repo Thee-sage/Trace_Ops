@@ -194,8 +194,9 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         });
         console.log(`[PASSWORD RESET] Email sent to ${user.email}`);
       } catch (emailErr) {
-        console.error('[PASSWORD RESET] Email failed, code logged instead:', emailErr);
-        console.log(`[PASSWORD RESET] Code for ${user.email}: ${code}`);
+        const errMsg = emailErr instanceof Error ? emailErr.message : String(emailErr);
+        console.error(`[PASSWORD RESET] ❌ Email send FAILED: ${errMsg}`);
+        console.log(`[PASSWORD RESET] Fallback code for ${user.email}: ${code}`);
       }
     } else {
       console.log(`[PASSWORD RESET] No Gmail configured. Code for ${user.email}: ${code}`);
@@ -203,8 +204,6 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
     return res.json({
       message: 'If that email exists, a reset code has been sent.',
-      // Include code in dev mode as fallback
-      ...(config.nodeEnv === 'development' ? { code } : {}),
     });
   } catch (error) {
     return res.status(500).json({ error: 'Failed to process reset request' });
