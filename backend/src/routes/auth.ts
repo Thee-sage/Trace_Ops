@@ -156,14 +156,22 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
 
     const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
-      // Don't reveal whether email exists
       return res.json({ message: 'If that email exists, a reset code has been sent.' });
     }
 
     const code = generateResetCode();
     resetCodes.set(user.email, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
 
-    // Send email via Gmail SMTP (fire-and-forget so response isn't blocked)
+    // ── DIAGNOSTIC BLOCK ──────────────────────────────────────────────────────
+    console.log('[SMTP DIAG] ── Starting email diagnostics ──');
+    console.log('[SMTP DIAG] NODE_ENV       :', process.env.NODE_ENV);
+    console.log('[SMTP DIAG] GMAIL_USER set :', !!process.env.GMAIL_USER, '→', process.env.GMAIL_USER);
+    console.log('[SMTP DIAG] GMAIL_PASS set :', !!process.env.GMAIL_APP_PASSWORD, '→ length:', (process.env.GMAIL_APP_PASSWORD || '').length);
+    console.log('[SMTP DIAG] config.gmailUser  :', config.gmailUser);
+    console.log('[SMTP DIAG] config.gmailPass length:', (config.gmailAppPassword || '').length);
+    console.log('[SMTP DIAG] SMTP host: smtp.gmail.com | port: 465 | secure: true | family: 4');
+    // ─────────────────────────────────────────────────────────────────────────
+
     if (config.gmailUser && config.gmailAppPassword) {
       const nodemailer = require('nodemailer');
       const transporter = nodemailer.createTransport({
@@ -179,36 +187,57 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
         socketTimeout: 10000,
         dnsTimeout: 10000,
         family: 4,
-        tls: {
-          rejectUnauthorized: false,
-        },
+        tls: { rejectUnauthorized: false },
+        debug: true,
+        logger: true,
       });
 
-      // Don't await — send in background so the API responds immediately
-      transporter.sendMail({
-        from: `"TraceOps" <${config.gmailUser}>`,
-        to: user.email,
-        subject: 'Your TraceOps password reset code',
-        html: `
-          <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px 24px;">
-            <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px;">Password Reset</h2>
-            <p style="font-size: 14px; color: #666; margin-bottom: 24px;">
-              Use this code to reset your TraceOps password. It expires in 15 minutes.
-            </p>
-            <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
-              <span style="font-size: 32px; font-weight: 600; letter-spacing: 8px; font-family: monospace;">${code}</span>
+      // Step 1: verify SMTP connection before sending
+      transporter.verify((verifyErr: Error | null, success: boolean) => {
+        if (verifyErr) {
+          console.error('[SMTP DIAG] ❌ transporter.verify() FAILED');
+          console.error('[SMTP DIAG] Error name   :', verifyErr.name);
+          console.error('[SMTP DIAG] Error message:', verifyErr.message);
+          console.error('[SMTP DIAG] Error stack  :\n', verifyErr.stack);
+          // Still attempt to send even if verify fails
+        } else {
+          console.log('[SMTP DIAG] ✅ transporter.verify() OK — server ready:', success);
+        }
+
+        // Step 2: send mail
+        transporter.sendMail({
+          from: `"TraceOps" <${config.gmailUser}>`,
+          to: user.email,
+          subject: 'Your TraceOps password reset code',
+          html: `
+            <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px 24px;">
+              <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px;">Password Reset</h2>
+              <p style="font-size: 14px; color: #666; margin-bottom: 24px;">
+                Use this code to reset your TraceOps password. It expires in 15 minutes.
+              </p>
+              <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 32px; font-weight: 600; letter-spacing: 8px; font-family: monospace;">${code}</span>
+              </div>
+              <p style="font-size: 12px; color: #999;">If you didn't request this, ignore this email.</p>
             </div>
-            <p style="font-size: 12px; color: #999;">If you didn't request this, ignore this email.</p>
-          </div>
-        `,
-      }).then(() => {
-        console.log(`[PASSWORD RESET] ✅ Email sent to ${user.email}`);
-      }).catch((emailErr: Error) => {
-        console.error(`[PASSWORD RESET] ❌ Email send FAILED: ${emailErr.message}`);
-        console.log(`[PASSWORD RESET] Fallback code for ${user.email}: ${code}`);
+          `,
+        }).then((info: any) => {
+          console.log('[SMTP DIAG] ✅ sendMail SUCCESS');
+          console.log('[SMTP DIAG] MessageId  :', info.messageId);
+          console.log('[SMTP DIAG] Response   :', info.response);
+          console.log('[SMTP DIAG] Accepted   :', info.accepted);
+          console.log('[SMTP DIAG] Rejected   :', info.rejected);
+        }).catch((sendErr: Error) => {
+          console.error('[SMTP DIAG] ❌ sendMail FAILED');
+          console.error('[SMTP DIAG] Error name   :', sendErr.name);
+          console.error('[SMTP DIAG] Error message:', sendErr.message);
+          console.error('[SMTP DIAG] Error stack  :\n', sendErr.stack);
+          console.log(`[SMTP DIAG] Fallback code for ${user.email}: ${code}`);
+        });
       });
     } else {
-      console.log(`[PASSWORD RESET] No Gmail configured. Code for ${user.email}: ${code}`);
+      console.log('[SMTP DIAG] ⚠️ Gmail not configured — GMAIL_USER or GMAIL_APP_PASSWORD missing');
+      console.log(`[SMTP DIAG] Fallback code for ${user.email}: ${code}`);
     }
 
     return res.json({
