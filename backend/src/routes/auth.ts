@@ -163,46 +163,48 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     const code = generateResetCode();
     resetCodes.set(user.email, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
 
-    // Send email via Gmail SMTP
+    // Send email via Gmail SMTP (fire-and-forget so response isn't blocked)
     if (config.gmailUser && config.gmailAppPassword) {
-      try {
-        const nodemailer = require('nodemailer');
-        const transporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 465,
-          secure: true,
-          auth: {
-            user: config.gmailUser,
-            pass: config.gmailAppPassword,
-          },
-          tls: {
-            rejectUnauthorized: false,
-          },
-        });
+      const nodemailer = require('nodemailer');
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+          user: config.gmailUser,
+          pass: config.gmailAppPassword,
+        },
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000,
+        tls: {
+          rejectUnauthorized: false,
+        },
+      });
 
-        await transporter.sendMail({
-          from: `"TraceOps" <${config.gmailUser}>`,
-          to: user.email,
-          subject: 'Your TraceOps password reset code',
-          html: `
-            <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px 24px;">
-              <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px;">Password Reset</h2>
-              <p style="font-size: 14px; color: #666; margin-bottom: 24px;">
-                Use this code to reset your TraceOps password. It expires in 15 minutes.
-              </p>
-              <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
-                <span style="font-size: 32px; font-weight: 600; letter-spacing: 8px; font-family: monospace;">${code}</span>
-              </div>
-              <p style="font-size: 12px; color: #999;">If you didn't request this, ignore this email.</p>
+      // Don't await — send in background so the API responds immediately
+      transporter.sendMail({
+        from: `"TraceOps" <${config.gmailUser}>`,
+        to: user.email,
+        subject: 'Your TraceOps password reset code',
+        html: `
+          <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px 24px;">
+            <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px;">Password Reset</h2>
+            <p style="font-size: 14px; color: #666; margin-bottom: 24px;">
+              Use this code to reset your TraceOps password. It expires in 15 minutes.
+            </p>
+            <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+              <span style="font-size: 32px; font-weight: 600; letter-spacing: 8px; font-family: monospace;">${code}</span>
             </div>
-          `,
-        });
-        console.log(`[PASSWORD RESET] Email sent to ${user.email}`);
-      } catch (emailErr) {
-        const errMsg = emailErr instanceof Error ? emailErr.message : String(emailErr);
-        console.error(`[PASSWORD RESET] ❌ Email send FAILED: ${errMsg}`);
+            <p style="font-size: 12px; color: #999;">If you didn't request this, ignore this email.</p>
+          </div>
+        `,
+      }).then(() => {
+        console.log(`[PASSWORD RESET] ✅ Email sent to ${user.email}`);
+      }).catch((emailErr: Error) => {
+        console.error(`[PASSWORD RESET] ❌ Email send FAILED: ${emailErr.message}`);
         console.log(`[PASSWORD RESET] Fallback code for ${user.email}: ${code}`);
-      }
+      });
     } else {
       console.log(`[PASSWORD RESET] No Gmail configured. Code for ${user.email}: ${code}`);
     }
