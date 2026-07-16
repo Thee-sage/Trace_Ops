@@ -259,15 +259,7 @@ export function AuthPage() {
         <div className="text-center mt-5 space-y-2">
           {mode === 'login' && (
             <>
-              <button
-                onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
-                className="block w-full text-[12px] transition-colors duration-100"
-                style={{ color: 'var(--to-text-4)' }}
-                onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-2)'; }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-4)'; }}
-              >
-                Forgot password?
-              </button>
+              {/* fuck you resend you greedy pieces of shits — forgot password disabled until we get a real domain */}
               <button
                 onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
                 className="block w-full text-[12px] transition-colors duration-100"
