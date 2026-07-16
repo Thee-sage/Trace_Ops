@@ -154,7 +154,20 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+    console.log("========== RESET REQUEST ==========");
+    console.log("Incoming email:", email);
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await UserModel.findOne({ email: normalizedEmail });
+
+    console.log("Normalized email:", normalizedEmail);
+    console.log("User found:", !!user);
+
+    if (user) {
+      console.log("Found user email:", user.email);
+    }
+
     if (!user) {
       return res.json({ message: 'If that email exists, a reset code has been sent.' });
     }
