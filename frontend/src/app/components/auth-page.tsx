@@ -342,9 +342,13 @@ export function AuthPage() {
                       color: 'var(--to-bg-primary)',
                       textAlign: 'center',
                       textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
                     }}
                   >
-                    Buy me a domain
+                    Buy me a domain <span style={{ color: '#ef4444', fontSize: '14px' }}>♥</span>
                   </a>
                   <button
                     onClick={() => setShowWhy(false)}
