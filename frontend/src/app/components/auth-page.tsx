@@ -16,6 +16,7 @@ export function AuthPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,7 +260,27 @@ export function AuthPage() {
         <div className="text-center mt-5 space-y-2">
           {mode === 'login' && (
             <>
-              {/* fuck you resend you greedy pieces of shits — forgot password disabled until we get a real domain */}
+              <div className="flex items-center justify-center gap-2">
+                <button
+                  onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
+                  className="text-[12px] transition-colors duration-100"
+                  style={{ color: 'var(--to-text-4)' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-2)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-4)'; }}
+                >
+                  Forgot password?
+                </button>
+                <span style={{ color: 'var(--to-text-4)', fontSize: 10 }}>—</span>
+                <button
+                  onClick={() => setShowWhy(true)}
+                  className="text-[11px] transition-colors duration-100"
+                  style={{ color: 'var(--to-text-4)', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-2)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-4)'; }}
+                >
+                  Know why?
+                </button>
+              </div>
               <button
                 onClick={() => { setMode('register'); setError(''); setSuccess(''); }}
                 className="block w-full text-[12px] transition-colors duration-100"
@@ -270,6 +291,64 @@ export function AuthPage() {
                 Don't have an account? Sign up
               </button>
             </>
+          )}
+
+          {/* Why forgot password doesn't work — developer frustration modal */}
+          {showWhy && (
+            <div
+              style={{
+                position: 'fixed', inset: 0, zIndex: 50,
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: '24px',
+              }}
+              onClick={() => setShowWhy(false)}
+            >
+              <div
+                style={{
+                  backgroundColor: 'var(--to-bg-primary)',
+                  border: '1px solid var(--to-border)',
+                  borderRadius: 10,
+                  padding: '28px 24px',
+                  maxWidth: 420,
+                  width: '100%',
+                  textAlign: 'left',
+                }}
+                onClick={e => e.stopPropagation()}
+              >
+                <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--to-text-1)', marginBottom: 14 }}>
+                  Why forgot password doesn't work
+                </h2>
+                <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 12 }}>
+                  Email providers require developers to own a verified domain before they are allowed
+                  to send a single transactional email. A domain costs money. Platforms that skip this
+                  requirement get their emails rate-limited and blocked by Gmail on the receiving end.
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 12 }}>
+                  So here is what happened: I built the feature. The code works. Brevo accepted the
+                  email. Gmail said no. Not because anything is broken. Because I don't have a domain
+                  and Gmail doesn't trust shared relay IPs. That's it.
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 20 }}>
+                  If this is as frustrating to you as it is to me, consider donating so this
+                  developer can afford a domain and make forgot password work like it should.
+                  Until then, don't forget your password.
+                </p>
+                <button
+                  onClick={() => setShowWhy(false)}
+                  style={{
+                    width: '100%', padding: '8px', borderRadius: 6,
+                    fontSize: 12, fontWeight: 500,
+                    backgroundColor: 'var(--to-bg-elevated)',
+                    border: '1px solid var(--to-border)',
+                    color: 'var(--to-text-3)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           )}
           {(mode === 'login' || mode === 'register') && (
             <div className="pt-3" style={{ borderTop: '1px solid var(--to-border)' }}>
