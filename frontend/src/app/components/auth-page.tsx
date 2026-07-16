@@ -319,33 +319,47 @@ export function AuthPage() {
                   Why forgot password doesn't work
                 </h2>
                 <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 12 }}>
-                  Email providers require developers to own a verified domain before they are allowed
-                  to send a single transactional email. A domain costs money. Platforms that skip this
-                  requirement get their emails rate-limited and blocked by Gmail on the receiving end.
+                  Reliable password reset emails require a verified sending domain or trusted email infrastructure. Platforms using shared infrastructure can have their emails delayed or rejected by Gmail.
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 12 }}>
-                  So here is what happened: I built the feature. The code works. Brevo accepted the
-                  email. Gmail said no. Not because anything is broken. Because I don't have a domain
-                  and Gmail doesn't trust shared relay IPs. That's it.
+                  So here's what happened: I built the feature. The code works. Brevo accepted the email. Gmail said no. Not because anything is broken—because I don't own a verified domain and Gmail doesn't trust shared relay IPs.
                 </p>
-                <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 20 }}>
-                  If this is as frustrating to you as it is to me, consider donating so this
-                  developer can afford a domain and make forgot password work like it should.
-                  Until then, don't forget your password.
+                <p style={{ fontSize: 12, color: 'var(--to-text-3)', lineHeight: 1.7, marginBottom: 12 }}>
+                  If this is as frustrating to you as it is to me, consider donating so this developer can finally afford a domain and make Forgot Password work the way it should.
                 </p>
-                <button
-                  onClick={() => setShowWhy(false)}
-                  style={{
-                    width: '100%', padding: '8px', borderRadius: 6,
-                    fontSize: 12, fontWeight: 500,
-                    backgroundColor: 'var(--to-bg-elevated)',
-                    border: '1px solid var(--to-border)',
-                    color: 'var(--to-text-3)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Close
-                </button>
+                <p style={{ fontSize: 12, color: 'var(--to-text-1)', fontWeight: 500, lineHeight: 1.7, marginBottom: 20 }}>
+                  Until then... please don't forget your password.
+                </p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <a
+                    href="https://x.com/AbhijeetS_878"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: 6,
+                      fontSize: 12, fontWeight: 600,
+                      backgroundColor: 'var(--to-text-1)',
+                      color: 'var(--to-bg-primary)',
+                      textAlign: 'center',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Buy me a domain
+                  </a>
+                  <button
+                    onClick={() => setShowWhy(false)}
+                    style={{
+                      flex: 1, padding: '8px', borderRadius: 6,
+                      fontSize: 12, fontWeight: 500,
+                      backgroundColor: 'var(--to-bg-elevated)',
+                      border: '1px solid var(--to-border)',
+                      color: 'var(--to-text-3)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           )}
