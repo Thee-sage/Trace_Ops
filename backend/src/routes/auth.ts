@@ -154,19 +154,8 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    console.log("========== RESET REQUEST ==========");
-    console.log("Incoming email:", email);
-
     const normalizedEmail = email.toLowerCase().trim();
-
     const user = await UserModel.findOne({ email: normalizedEmail });
-
-    console.log("Normalized email:", normalizedEmail);
-    console.log("User found:", !!user);
-
-    if (user) {
-      console.log("Found user email:", user.email);
-    }
 
     if (!user) {
       return res.json({ message: 'If that email exists, a reset code has been sent.' });
@@ -175,54 +164,20 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
     const code = generateResetCode();
     resetCodes.set(user.email, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
 
-    // ── DIAGNOSTIC BLOCK ──────────────────────────────────────────────────────
-    console.log('[SMTP DIAG] ── Starting email diagnostics ──');
-    console.log('[SMTP DIAG] NODE_ENV       :', process.env.NODE_ENV);
-    console.log('[SMTP DIAG] GMAIL_USER set :', !!process.env.GMAIL_USER, '→', process.env.GMAIL_USER);
-    console.log('[SMTP DIAG] GMAIL_PASS set :', !!process.env.GMAIL_APP_PASSWORD, '→ length:', (process.env.GMAIL_APP_PASSWORD || '').length);
-    console.log('[SMTP DIAG] config.gmailUser  :', config.gmailUser);
-    console.log('[SMTP DIAG] config.gmailPass length:', (config.gmailAppPassword || '').length);
-    console.log('[SMTP DIAG] SMTP host: smtp.gmail.com | port: 465 | secure: true | family: 4');
-    // ─────────────────────────────────────────────────────────────────────────
-
-    if (config.gmailUser && config.gmailAppPassword) {
-      const nodemailer = require('nodemailer');
-      const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        auth: {
-          user: config.gmailUser,
-          pass: config.gmailAppPassword,
+    // Send via Brevo HTTP API (HTTPS port 443 — no SMTP port restrictions)
+    if (config.brevoApiKey && config.brevoSenderEmail) {
+      fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': config.brevoApiKey,
+          'content-type': 'application/json',
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-        dnsTimeout: 10000,
-        family: 4,
-        tls: { rejectUnauthorized: false },
-        debug: true,
-        logger: true,
-      });
-
-      // Step 1: verify SMTP connection before sending
-      transporter.verify((verifyErr: Error | null, success: boolean) => {
-        if (verifyErr) {
-          console.error('[SMTP DIAG] ❌ transporter.verify() FAILED');
-          console.error('[SMTP DIAG] Error name   :', verifyErr.name);
-          console.error('[SMTP DIAG] Error message:', verifyErr.message);
-          console.error('[SMTP DIAG] Error stack  :\n', verifyErr.stack);
-          // Still attempt to send even if verify fails
-        } else {
-          console.log('[SMTP DIAG] ✅ transporter.verify() OK — server ready:', success);
-        }
-
-        // Step 2: send mail
-        transporter.sendMail({
-          from: `"TraceOps" <${config.gmailUser}>`,
-          to: user.email,
+        body: JSON.stringify({
+          sender: { name: 'TraceOps', email: config.brevoSenderEmail },
+          to: [{ email: user.email }],
           subject: 'Your TraceOps password reset code',
-          html: `
+          htmlContent: `
             <div style="font-family: -apple-system, sans-serif; max-width: 400px; margin: 0 auto; padding: 32px 24px;">
               <h2 style="font-size: 18px; font-weight: 500; margin-bottom: 16px;">Password Reset</h2>
               <p style="font-size: 14px; color: #666; margin-bottom: 24px;">
@@ -234,23 +189,13 @@ router.post('/forgot-password', async (req: Request, res: Response) => {
               <p style="font-size: 12px; color: #999;">If you didn't request this, ignore this email.</p>
             </div>
           `,
-        }).then((info: any) => {
-          console.log('[SMTP DIAG] ✅ sendMail SUCCESS');
-          console.log('[SMTP DIAG] MessageId  :', info.messageId);
-          console.log('[SMTP DIAG] Response   :', info.response);
-          console.log('[SMTP DIAG] Accepted   :', info.accepted);
-          console.log('[SMTP DIAG] Rejected   :', info.rejected);
-        }).catch((sendErr: Error) => {
-          console.error('[SMTP DIAG] ❌ sendMail FAILED');
-          console.error('[SMTP DIAG] Error name   :', sendErr.name);
-          console.error('[SMTP DIAG] Error message:', sendErr.message);
-          console.error('[SMTP DIAG] Error stack  :\n', sendErr.stack);
-          console.log(`[SMTP DIAG] Fallback code for ${user.email}: ${code}`);
-        });
-      });
+        }),
+      })
+        .then(res => res.json())
+        .then(data => console.log('[EMAIL] Brevo sent:', JSON.stringify(data)))
+        .catch(err => console.error('[EMAIL] Brevo error:', err.message));
     } else {
-      console.log('[SMTP DIAG] ⚠️ Gmail not configured — GMAIL_USER or GMAIL_APP_PASSWORD missing');
-      console.log(`[SMTP DIAG] Fallback code for ${user.email}: ${code}`);
+      console.warn('[EMAIL] BREVO_API_KEY or BREVO_SENDER_EMAIL not configured');
     }
 
     return res.json({
