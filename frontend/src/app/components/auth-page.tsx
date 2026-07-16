@@ -262,13 +262,12 @@ export function AuthPage() {
             <>
               <div className="flex items-center justify-center gap-2">
                 <button
-                  onClick={() => { setMode('forgot'); setError(''); setSuccess(''); }}
-                  className="text-[12px] transition-colors duration-100"
-                  style={{ color: 'var(--to-text-4)' }}
-                  onMouseEnter={e => { e.currentTarget.style.color = 'var(--to-text-2)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--to-text-4)'; }}
+                  disabled
+                  type="button"
+                  className="text-[12px]"
+                  style={{ color: 'var(--to-text-4)', opacity: 0.5, cursor: 'not-allowed' }}
                 >
-                  Forgot password?
+                  Forgot password? (Disabled)
                 </button>
                 <span style={{ color: 'var(--to-text-4)', fontSize: 10 }}>—</span>
                 <button
